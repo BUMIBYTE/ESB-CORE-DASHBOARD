@@ -149,7 +149,7 @@ const Routing = () => {
 
     setLoadingAction(fileName);
     try {
-      await axios.get(`${BASE_URL}/stop?jobId=${job.id}`);
+      await axios.post(`${BASE_URL}/stop?jobId=${job.id}`);
       setTimeout(fetchJobs, 1500);
     } catch (err) { alert("Gagal menghentikan rute."); }
     finally { setLoadingAction(null); }
