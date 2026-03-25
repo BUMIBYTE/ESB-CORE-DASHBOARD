@@ -24,7 +24,7 @@ function Sidebar() {
           E
         </div>
         <div>
-          <h2 className="text-white font-bold tracking-tight text-lg leading-tight">ESB Monitoring</h2>
+          <h2 className="text-white font-bold tracking-tight text-lg leading-tight">ESB Middleware</h2>
           <p className="text-[10px] text-slate-500 uppercase font-semibold tracking-widest">by Primakom</p>
         </div>
       </div>
