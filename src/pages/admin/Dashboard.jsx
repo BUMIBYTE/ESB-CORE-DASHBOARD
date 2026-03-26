@@ -10,7 +10,7 @@ const Dashboard = () => {
   const [cpuUsed, setCpuUsed] = useState(0);
   const [rawMem, setRawMem] = useState({ used: 0, total: 1 });
 
-  const BASE_URL = "http://10.1.1.135:5001/api/v1";
+  const BASE_URL = "http://localhost:5001/api/v1";
 
   const toGB = (mb) => (mb / 1024).toFixed(2);
 
