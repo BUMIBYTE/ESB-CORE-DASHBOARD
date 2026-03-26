@@ -41,9 +41,10 @@ const Routing = () => {
     try {
       const res = await axios.get(`${BASE_URL}/folders`);
       const data = res.data.data || [];
-      setFolders(data);
-      if (data.length > 0 && !selectedFolder) {
-        handleSelectFolder(data[0].name);
+      const filtered = data.filter(f => f.name !== '.versions');
+      setFolders(filtered);
+      if (filtered.length > 0 && !selectedFolder) {
+        handleSelectFolder(filtered[0].name);
       }
     } catch (err) { console.error("Error folders:", err); }
   };
