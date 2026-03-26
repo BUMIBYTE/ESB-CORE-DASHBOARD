@@ -291,13 +291,15 @@ const Routing = () => {
                 <tbody className="divide-y divide-slate-50">
                   {files.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase())).map((file) => {
                     const isRunning = activeJobs.some(j => j.filePath === `${selectedFolder}/${file.name}`);
+                    const port = isRunning ? activeJobs.find(j => j.filePath === `${selectedFolder}/${file.name}`).port : null;
+
                     return (
                       <tr key={file.name} onClick={() => handleReadFile(file.name)} className="hover:bg-slate-50/80 transition-all group cursor-pointer">
                         <td className="px-10 py-6 flex items-center gap-5">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isRunning ? 'bg-emerald-50 text-emerald-500 border-emerald-100 animate-pulse' : 'bg-slate-50 text-slate-400 border-slate-100'}`}><FileCode size={18} /></div>
                           <div>
                              <div className="font-black text-slate-700 tracking-tight">{file.name}</div>
-                             <div className="text-[9px] text-slate-400 font-bold uppercase mt-1">{isRunning ? 'Running' : 'Idle'}</div>
+                             <div className="text-[9px] text-slate-400 font-bold uppercase mt-1">{isRunning ? `Running port: ${port}` : 'Idle'}</div>
                           </div>
                         </td>
                         <td className="px-10 py-6 text-right" onClick={e => e.stopPropagation()}>
