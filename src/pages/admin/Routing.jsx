@@ -6,9 +6,10 @@ import {
   Terminal, Activity, Play, Square, Save, XCircle,
   Eye, Code2
 } from 'lucide-react';
+import { BaseUrlTest,BaseUrl,BaseUrlItacha } from '../../api/apiservice';
 
 const Routing = () => {
-  const BASE_URL = "http://10.123.45.4:5001/api/v1/jbang";
+  const BASE_URL = BaseUrlTest+"/jbang";
 
   // --- STATE DATA ---
   const [folders, setFolders] = useState([]);

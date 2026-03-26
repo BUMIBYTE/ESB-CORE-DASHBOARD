@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Cpu, Database, Activity, Globe, Server, RefreshCcw, LayoutDashboard, Zap } from 'lucide-react';
+import { BaseUrlTest,BaseUrl,BaseUrlItacha } from '../../api/apiservice';
 
 const Dashboard = () => {
   const [serverSpecs, setServerSpecs] = useState({});
@@ -10,7 +11,7 @@ const Dashboard = () => {
   const [cpuUsed, setCpuUsed] = useState(0);
   const [rawMem, setRawMem] = useState({ used: 0, total: 1 });
 
-  const BASE_URL = "http://10.123.45.4:5001/api/v1";
+  const BASE_URL = BaseUrlTest;
 
   const toGB = (mb) => (mb / 1024).toFixed(2);
 
