@@ -11,7 +11,7 @@ const Dashboard = () => {
   const [cpuUsed, setCpuUsed] = useState(0);
   const [rawMem, setRawMem] = useState({ used: 0, total: 1 });
 
-  const BASE_URL = BaseUrlTest;
+  const BASE_URL = BaseUrl;
 
   const toGB = (mb) => (mb / 1024).toFixed(2);
 
