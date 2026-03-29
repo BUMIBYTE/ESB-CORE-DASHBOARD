@@ -6,10 +6,10 @@ import {
   Terminal, Activity, Play, Square, Save, XCircle,
   Eye, Code2, TerminalIcon, ChevronDown
 } from 'lucide-react';
-import { BaseUrlTest, BaseUrl, BaseUrlItacha } from '../../api/apiservice';
+import { BaseUrlTest, BaseUrlBB, BaseUrlItacha } from '../../api/apiservice';
 
 const Routing = () => {
-  const BASE_URL = BaseUrl + "/jbang";
+  const BASE_URL = BaseUrlBB + "/jbang";
 
   // --- STATE DATA ---
   const [folders, setFolders] = useState([]);
