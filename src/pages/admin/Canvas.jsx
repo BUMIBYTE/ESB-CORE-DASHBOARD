@@ -1,109 +1,319 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from "react";
+import ReactFlow, {
+  addEdge,
+  Controls,
+  Background,
+  Handle,
+  Position,
+  useNodesState,
+  useEdgesState,
+  MarkerType,
+} from "reactflow";
+import "reactflow/dist/style.css";
 
-function Canvas() {
-  const [nodes, setNodes] = useState([
-    { id: 1, type: 'Direct', name: 'from-incoming-rest', x: 50, y: 50 },
-    { id: 2, type: 'Log', name: 'log-request', x: 250, y: 50 },
-  ]);
+// =====================
+// 🎨 THEME & STYLES
+// =====================
+const theme = {
+  timer: { bg: "#e1f5fe", border: "#039be5", icon: "🕒" },
+  http: { bg: "#e8f5e9", border: "#43a047", icon: "🌐" },
+  log: { bg: "#fff3e0", border: "#fb8c00", icon: "📝" },
+  choice: { bg: "#f3e5f5", border: "#8e24aa", icon: "🔀" },
+  split: { bg: "#ede7f6", border: "#5e35b1", icon: "✂️" },
+  setHeader: { bg: "#fce4ec", border: "#d81b60", icon: "📌" },
+  unmarshal: { bg: "#e0f2f1", border: "#00897b", icon: "🔓" }, // Warna Teal untuk Unmarshal
+  default: { bg: "#ffffff", border: "#9e9e9e", icon: "🔹" },
+};
+
+// =====================
+// ✨ CUSTOM NODES
+// =====================
+const BaseNode = ({ data, selected, children, type }) => {
+  const style = theme[type] || theme.default;
+  return (
+    <div style={{
+      padding: "10px 15px", borderRadius: "8px", background: style.bg,
+      border: `2px solid ${selected ? "#2196f3" : style.border}`,
+      boxShadow: selected ? "0 0 12px rgba(33, 150, 243, 0.6)" : "0 2px 5px rgba(0,0,0,0.1)",
+      minWidth: "160px", fontSize: "12px", transition: "all 0.2s"
+    }}>
+      <div style={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px" }}>
+        <span>{style.icon}</span> {data.label}
+      </div>
+      <div style={{ fontSize: "10px", color: "#666", marginTop: "2px", fontFamily: "monospace" }}>
+        ID: {data.config?.id}
+      </div>
+      {children}
+    </div>
+  );
+};
+
+const DefaultNode = ({ data, selected }) => (
+  <BaseNode data={data} selected={selected} type={data.nodeType}>
+    <Handle type="target" position={Position.Top} />
+    <Handle type="source" position={Position.Bottom} />
+  </BaseNode>
+);
+
+const ChoiceNode = ({ data, selected }) => (
+  <BaseNode data={data} selected={selected} type="choice">
+    <Handle type="target" position={Position.Top} />
+    <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
+      <b style={{ color: "green", fontSize: "9px" }}>TRUE</b>
+      <b style={{ color: "red", fontSize: "9px" }}>FALSE</b>
+    </div>
+    <Handle type="source" position={Position.Bottom} id="true" style={{ left: "25%", background: "green" }} />
+    <Handle type="source" position={Position.Bottom} id="false" style={{ left: "75%", background: "red" }} />
+  </BaseNode>
+);
+
+const nodeTypes = { default: DefaultNode, choiceNode: ChoiceNode };
+
+// =====================
+// 🚀 MAIN APP
+// =====================
+export default function App() {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+
+  const onConnect = useCallback((params) => {
+    const isChoice = params.sourceHandle === "true" || params.sourceHandle === "false";
+    setEdges((eds) => addEdge({
+      ...params, animated: true,
+      label: isChoice ? params.sourceHandle : "",
+      labelStyle: { fill: params.sourceHandle === "true" ? "green" : "red", fontWeight: 700 },
+      markerEnd: { type: MarkerType.ArrowClosed },
+    }, eds));
+  }, [setEdges]);
+
+  const onDrop = useCallback((event) => {
+    event.preventDefault();
+    const type = event.dataTransfer.getData("application/reactflow");
+    if (!type) return;
+    const id = `node_${Date.now()}`;
+    const newNode = {
+      id, type: type === "choice" ? "choiceNode" : "default",
+      position: { x: event.clientX - 400, y: event.clientY - 100 },
+      data: { label: type.toUpperCase(), nodeType: type, config: getDefaultConfig(type) },
+    };
+    setNodes((nds) => [...nds, newNode]);
+  }, [setNodes]);
+
+  const updateConfig = (key, value) => {
+    setNodes((nds) => nds.map((n) => n.id === selectedNodeId ? 
+      { ...n, data: { ...n.data, config: { ...n.data.config, [key]: value } } } : n));
+  };
+
+  const selectedNode = nodes.find(n => n.id === selectedNodeId);
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen font-sans">
-      {/* Canvas Toolbar */}
-      <div className="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm z-10">
-        <div className="flex items-center gap-4">
-          <h2 className="font-bold text-slate-700">ESB Canvas Builder</h2>
-          <div className="h-4 w-[1px] bg-slate-300"></div>
-          <span className="text-xs text-slate-500 font-mono italic text-blue-600 font-bold underline">camel-context.yaml</span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-md transition-all">
-            Clear Canvas
-          </button>
-          <button className="px-4 py-1.5 bg-blue-900 text-white text-xs font-bold rounded-md shadow-lg shadow-blue-900/20 hover:bg-slate-800 transition-all flex items-center gap-2">
-            <span>📥</span> EXPORT YAML
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 flex overflow-hidden">
-        {/* Components Palette (Left Sidebar) */}
-        <div className="w-64 bg-white border-r border-slate-200 p-4 overflow-y-auto">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Components Palette</p>
-          
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-700">Endpoints</h4>
-            <div className="grid grid-cols-1 gap-2">
-              <ComponentItem icon="📥" label="Direct" color="border-blue-400" />
-              <ComponentItem icon="🌐" label="Rest" color="border-emerald-400" />
-              <ComponentItem icon="📫" label="ActiveMQ" color="border-orange-400" />
-            </div>
-
-            <h4 className="text-xs font-bold text-slate-700 mt-6">Processors</h4>
-            <div className="grid grid-cols-1 gap-2">
-              <ComponentItem icon="📝" label="Log" color="border-slate-400" />
-              <ComponentItem icon="🔀" label="Choice" color="border-purple-400" />
-              <ComponentItem icon="⚙️" label="SetHeader" color="border-amber-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Main Canvas Area */}
-        <div className="flex-1 relative overflow-hidden bg-slate-50 group">
-          {/* Dot Grid Background */}
-          <div className="absolute inset-0" 
-               style={{ 
-                 backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', 
-                 backgroundSize: '24px 24px' 
-               }}>
-          </div>
-
-          {/* Dummy Nodes (Visual Representation) */}
-          {nodes.map((node) => (
-            <div 
-              key={node.id}
-              style={{ left: node.x, top: node.y }}
-              className="absolute w-48 bg-white border-2 border-slate-200 rounded-xl shadow-md p-3 cursor-move hover:border-blue-500 transition-colors group"
-            >
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
-                <span className="text-sm font-bold text-slate-700">{node.type}</span>
-                <span className="ml-auto text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">Active</span>
-              </div>
-              <p className="text-[11px] text-slate-500 font-mono truncate">{node.name}</p>
-              
-              {/* Connection Points */}
-              <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-crosshair"></div>
-              <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-slate-300 rounded-full cursor-crosshair"></div>
+    <div style={{ display: "flex", height: "100vh", fontFamily: "sans-serif", background: "#f4f7f6" }}>
+      {/* SIDEBAR LEFT */}
+      <div style={{ width: 240, padding: "20px", borderRight: "1px solid #ddd", background: "#fff", zIndex: 10 }}>
+        <h3 style={{ margin: "0 0 20px 0", color: "#2c3e50" }}>Camel Designer</h3>
+        <div style={{ display: "grid", gap: "10px" }}>
+          {["timer", "http", "unmarshal", "log", "choice", "split", "setHeader"].map(t => (
+            <div key={t} draggable onDragStart={(e) => e.dataTransfer.setData("application/reactflow", t)}
+              style={{ 
+                padding: "12px", background: theme[t].bg, border: `1px solid ${theme[t].border}`, 
+                borderRadius: "6px", cursor: "grab", fontWeight: "500", fontSize: "13px" 
+              }}>
+              {theme[t].icon} {t.toUpperCase()}
             </div>
           ))}
-
-          {/* Empty State Hint */}
-          <div className="absolute bottom-8 right-8 bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-slate-200 text-[11px] text-slate-500 shadow-sm">
-            💡 Drag components from the left to start building your Camel route.
-          </div>
         </div>
+        <button onClick={() => downloadYaml(buildYaml(nodes, edges))} 
+          style={{ 
+            width: "100%", padding: "12px", marginTop: "30px", background: "#2c3e50", 
+            color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" 
+          }}>
+          📥 EXPORT YAML
+        </button>
+      </div>
 
-        {/* Properties Panel (Right Sidebar - Optional) */}
-        <div className="w-72 bg-white border-l border-slate-200 p-4 hidden xl:block">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Properties</p>
-          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-            <p className="text-[11px] text-slate-400 mb-2 italic underline">No node selected</p>
-            <p className="text-xs text-slate-500 leading-relaxed">Select a component on the canvas to edit its Camel properties and DSL parameters.</p>
+      {/* CANVAS */}
+      <div style={{ flex: 1 }}>
+        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange} onConnect={onConnect} onDrop={onDrop}
+          onDragOver={(e) => e.preventDefault()} onNodeClick={(_, n) => setSelectedNodeId(n.id)}
+          onPaneClick={() => setSelectedNodeId(null)} fitView>
+          <Background variant="dots" gap={20} />
+          <Controls />
+        </ReactFlow>
+      </div>
+
+      {/* CONFIG RIGHT */}
+      <div style={{ 
+        width: selectedNodeId ? 320 : 0, transition: "width 0.3s ease", 
+        overflow: "hidden", background: "#fff", borderLeft: selectedNodeId ? "1px solid #ddd" : "none" 
+      }}>
+        {selectedNode && (
+          <div style={{ padding: "20px", width: "280px" }}>
+            <h4 style={{ marginTop: 0 }}>Configuration</h4>
+            <hr style={{ opacity: 0.2 }} />
+            <ConfigPanel node={selectedNode} onChange={updateConfig} />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Sub-component untuk Palette Item
-function ComponentItem({ icon, label, color }) {
+// =====================
+// 🛠️ CONFIG PANEL
+// =====================
+function ConfigPanel({ node, onChange }) {
+  const { nodeType, config } = node.data;
+  const s = { display: "block", fontSize: "12px", margin: "15px 0 5px", color: "#7f8c8d", fontWeight: "bold" };
+  const i = { width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "4px", boxSizing: "border-box" };
+
   return (
-    <div className={`flex items-center gap-3 p-3 bg-slate-50 border-l-4 ${color} rounded-r-lg hover:bg-white hover:shadow-sm cursor-grab active:cursor-grabbing transition-all border-y border-r border-slate-100`}>
-      <span className="text-lg">{icon}</span>
-      <span className="text-xs font-bold text-slate-700">{label}</span>
-    </div>
+    <>
+      <label style={s}>Component ID</label>
+      <input style={i} value={config.id || ""} onChange={(e) => onChange("id", e.target.value)} />
+      
+      {nodeType === "unmarshal" && (
+        <>
+          <label style={s}>Format</label>
+          <select style={i} value={config.format || "json"} onChange={(e) => onChange("format", e.target.value)}>
+            <option value="json">JSON (Jackson)</option>
+            <option value="csv">CSV</option>
+            <option value="jaxb">XML (JAXB)</option>
+          </select>
+        </>
+      )}
+
+      {nodeType === "log" && (
+        <><label style={s}>Message</label>
+        <textarea style={i} rows={3} value={config.message || ""} onChange={(e) => onChange("message", e.target.value)} /></>
+      )}
+      
+      {nodeType === "http" && (
+        <><label style={s}>Endpoint URL</label>
+        <input style={i} value={config.url || ""} onChange={(e) => onChange("url", e.target.value)} /></>
+      )}
+      
+      {nodeType === "choice" && (
+        <><label style={s}>Simple Condition</label>
+        <input style={i} placeholder="${body} != null" value={config.condition || ""} onChange={(e) => onChange("condition", e.target.value)} /></>
+      )}
+      
+      {nodeType === "split" && (
+        <><label style={s}>Split Expression (Simple)</label>
+        <input style={i} placeholder="${body}" value={config.expression || ""} onChange={(e) => onChange("expression", e.target.value)} /></>
+      )}
+    </>
   );
 }
 
-export default Canvas;
+function getDefaultConfig(type) {
+  const id = `${type}-${Math.random().toString(36).slice(-4)}`;
+  switch (type) {
+    case "timer": return { id, uri: "timer:tick?period=5000" };
+    case "http": return { id, url: "https://api.test" };
+    case "unmarshal": return { id, format: "json" };
+    case "log": return { id, message: "Log: ${body}" };
+    case "choice": return { id, condition: "${body} != null" };
+    case "split": return { id, expression: "${body}" };
+    default: return { id };
+  }
+}
+
+// =====================
+// 🧱 YAML BUILDER
+// =====================
+function buildYaml(nodes, edges) {
+  const startNode = nodes.find(n => !edges.find(e => e.target === n.id));
+  const route = {
+    route: {
+      id: "route-" + Math.floor(Date.now()/1000),
+      from: {
+        uri: startNode?.data?.config?.uri || "timer:trigger",
+        steps: buildSteps(startNode, nodes, edges, new Set())
+      }
+    }
+  };
+  return stringifyYaml([route]);
+}
+
+function buildSteps(currentNode, nodes, edges, processed) {
+  if (!currentNode) return [];
+  processed.add(currentNode.id);
+
+  const nextEdges = edges.filter(e => e.source === currentNode.id);
+  let steps = [];
+
+  nextEdges.forEach(edge => {
+    const nextNode = nodes.find(n => n.id === edge.target);
+    if (!nextNode || processed.has(nextNode.id)) return;
+
+    const cfg = nextNode.data.config;
+    const type = nextNode.data.nodeType;
+
+    if (type === "split") {
+      steps.push({
+        split: {
+          id: cfg.id,
+          simple: cfg.expression,
+          steps: buildSteps(nextNode, nodes, edges, new Set(processed))
+        }
+      });
+    } else if (type === "unmarshal") {
+      steps.push({
+        unmarshal: {
+          id: cfg.id,
+          [cfg.format || "json"]: { library: "Jackson" }
+        }
+      });
+      steps.push(...buildSteps(nextNode, nodes, edges, processed));
+    } else if (type === "choice") {
+      const tE = edges.find(e => e.source === nextNode.id && e.label === "true");
+      const fE = edges.find(e => e.source === nextNode.id && e.label === "false");
+      steps.push({
+        choice: {
+          id: cfg.id,
+          when: [{ 
+            simple: cfg.condition, 
+            steps: tE ? buildSteps(nodes.find(n => n.id === tE.target), nodes, edges, new Set(processed)) : [] 
+          }],
+          otherwise: { 
+            steps: fE ? buildSteps(nodes.find(n => n.id === fE.target), nodes, edges, new Set(processed)) : [] 
+          }
+        }
+      });
+    } else {
+      if (type === "log") steps.push({ log: { id: cfg.id, message: cfg.message } });
+      if (type === "http") steps.push({ to: { id: cfg.id, uri: cfg.url } });
+      if (type === "setHeader") steps.push({ setHeader: { name: cfg.name, simple: cfg.value } });
+      steps.push(...buildSteps(nextNode, nodes, edges, processed));
+    }
+  });
+
+  return steps;
+}
+
+// =====================
+// 🛡️ SAFE YAML STRINGIFIER
+// =====================
+function stringifyYaml(obj, indent = 0) {
+  const s = " ".repeat(indent);
+  if (Array.isArray(obj)) return obj.map(v => `${s}- ${stringifyYaml(v, indent + 2).trimStart()}`).join("\n");
+  if (obj && typeof obj === "object") {
+    return Object.entries(obj).map(([k, v]) => {
+      if (v && typeof v === "object") return `${s}${k}:\n${stringifyYaml(v, indent + 2)}`;
+      const valStr = String(v);
+      const needsQuoting = /[$[\]{}:]/.test(valStr);
+      const safeValue = needsQuoting ? `"${valStr.replace(/"/g, '\\"')}"` : valStr;
+      return `${s}${k}: ${safeValue}`;
+    }).join("\n");
+  }
+  return String(obj);
+}
+
+function downloadYaml(yaml) {
+  const blob = new Blob([yaml], { type: "text/yaml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `camel-route-${Date.now()}.yaml`; a.click();
+}

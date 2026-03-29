@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Cpu, Database, Activity, Globe, Server, RefreshCcw, LayoutDashboard, Zap } from 'lucide-react';
+import { Cpu, Database, Activity, Globe, Server, RefreshCcw, LayoutDashboard, Zap, LucideMemoryStick } from 'lucide-react';
 import { BaseUrlTest, BaseUrl, BaseUrlItacha, BaseUrlBB } from '../../api/apiservice';
 import { CiFloppyDisk } from 'react-icons/ci';
 
@@ -14,7 +14,7 @@ const Dashboard = () => {
 
   const [rawMem, setRawMem] = useState({ used: 0, total: 1 });
 
-  const BASE_URL = BaseUrlTest;
+  const BASE_URL = BaseUrlBB;
 
   const toGB = (mb) => (mb / 1024).toFixed(2);
 
@@ -56,7 +56,7 @@ const Dashboard = () => {
           subValue: `Total ${toGB(mem.result.total)} GB`,
           color: "text-purple-600",
           bg: "bg-purple-100",
-          icon: <Database size={22} />,
+          icon: <LucideMemoryStick size={22} />,
           type: "ram"
         },
         {
@@ -65,7 +65,7 @@ const Dashboard = () => {
           subValue: `Total ${storage.result.total} GB`,
           color: "text-emerald-600",
           bg: "bg-emerald-100",
-          icon: <CiFloppyDisk size={22} />,
+          icon: <Database size={22} />,
           type: "storage"
         },
         {
