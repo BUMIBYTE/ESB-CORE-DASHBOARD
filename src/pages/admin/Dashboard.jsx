@@ -60,14 +60,6 @@ const Dashboard = () => {
           type: "ram"
         },
         {
-          label: "Network Peak",
-          value: formatNetworkSpeed(server.networkPeak),
-          subValue: "Max transfer rate",
-          color: "text-orange-600",
-          bg: "bg-orange-100",
-          icon: <Globe size={22} />
-        },
-        {
           label: "Storage Used",
           value: `${storage.result.used} GB`,
           subValue: `Total ${storage.result.total} GB`,
@@ -75,6 +67,14 @@ const Dashboard = () => {
           bg: "bg-emerald-100",
           icon: <CiFloppyDisk size={22} />,
           type: "storage"
+        },
+        {
+          label: "Network Peak",
+          value: formatNetworkSpeed(server.networkPeak),
+          subValue: "Max transfer rate",
+          color: "text-orange-600",
+          bg: "bg-orange-100",
+          icon: <Globe size={22} />
         }
       ]);
     } catch (err) {
