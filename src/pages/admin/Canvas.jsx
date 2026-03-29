@@ -22,7 +22,7 @@ const theme = {
   split: { bg: "#ede7f6", border: "#5e35b1", icon: "✂️" },
   setHeader: { bg: "#fce4ec", border: "#d81b60", icon: "📌" },
   setBody: { bg: "#fff9c4", border: "#fbc02d", icon: "📦" },
-  setProperty: { bg: "#f3e5f5", border: "#7b1fa2", icon: "💎" }, // Ungu untuk Property
+  setProperty: { bg: "#f3e5f5", border: "#7b1fa2", icon: "💎" },
   unmarshal: { bg: "#e0f2f1", border: "#00897b", icon: "🔓" },
   default: { bg: "#ffffff", border: "#9e9e9e", icon: "🔹" },
 };
@@ -78,6 +78,11 @@ export default function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
+  
+  // State for Modal
+  const [showModal, setShowModal] = useState(false);
+  const [generatedYaml, setGeneratedYaml] = useState("");
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const onConnect = useCallback((params) => {
     const isChoice = params.sourceHandle === "true" || params.sourceHandle === "false";
@@ -107,6 +112,19 @@ export default function App() {
       { ...n, data: { ...n.data, config: { ...n.data.config, [key]: value } } } : n));
   };
 
+  const handleExport = () => {
+    const yaml = buildYaml(nodes, edges);
+    setGeneratedYaml(yaml);
+    setShowModal(true);
+    setCopySuccess(false);
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedYaml);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
 
   return (
@@ -122,7 +140,7 @@ export default function App() {
             </div>
           ))}
         </div>
-        <button onClick={() => downloadYaml(buildYaml(nodes, edges))} 
+        <button onClick={handleExport} 
           style={{ width: "100%", padding: "12px", marginTop: "30px", background: "#2c3e50", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
           📥 EXPORT YAML
         </button>
@@ -144,6 +162,31 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* YAML PREVIEW MODAL */}
+      {showModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ backgroundColor: "#fff", width: "80%", maxWidth: "800px", borderRadius: "12px", padding: "25px", position: "relative", boxShadow: "0 10px 25px rgba(0,0,0,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+              <h3 style={{ margin: 0 }}>YAML Preview</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#999" }}>✕</button>
+            </div>
+            
+            <pre style={{ backgroundColor: "#282c34", color: "#abb2bf", padding: "20px", borderRadius: "8px", overflow: "auto", maxHeight: "400px", fontSize: "13px", lineHeight: "1.5" }}>
+              {generatedYaml}
+            </pre>
+
+            <div style={{ display: "flex", gap: "10px", marginTop: "20px", justifyContent: "flex-end" }}>
+              <button onClick={handleCopy} style={{ padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: copySuccess ? "#4caf50" : "#2196f3", color: "white", cursor: "pointer", fontWeight: "bold" }}>
+                {copySuccess ? "✓ Copied!" : "📋 Copy to Clipboard"}
+              </button>
+              <button onClick={() => downloadYaml(generatedYaml)} style={{ padding: "10px 20px", borderRadius: "6px", border: "1px solid #ddd", backgroundColor: "#fff", cursor: "pointer", fontWeight: "bold" }}>
+                💾 Download .yaml
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

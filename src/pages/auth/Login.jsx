@@ -1,96 +1,111 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import api from "../../api/axios"; // 🔥 pakai axios instance
 
-const LoginScreen = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const Login = () => {
+  const [email, setEmail] = useState("");
+  const [pin, setPin] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login Primakom ESB:', { email, password });
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await api.post("/auth/login", {
+        email: email,
+        pin: pin,
+      });
+
+      console.log("LOGIN RESPONSE:", res.data);
+
+      if (res.data.code === 200) {
+        // 🔥 simpan token
+        localStorage.setItem("accessToken", res.data.accessToken);
+        localStorage.setItem("userId", res.data.id);
+
+        // redirect
+        window.location.href = "/dashboard";
+      } else {
+        setError("Opps! Login gagal, periksa kembali akun Anda.");
+      }
+
+    } catch (err) {
+      console.error(err);
+
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Email atau PIN yang Anda masukkan salah.");
+      }
+
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 font-sans">
-      <div className="max-w-md w-full">
-        {/* Logo Primakom / ESB Placeholder */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-blue-900 rounded-xl flex items-center justify-center shadow-lg mb-4">
-            <span className="text-white font-bold text-2xl">ESB</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
-            ESB MONITORING
-          </h1>
-          <p className="text-slate-500 text-sm">Powered by Primacom</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
+      <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 p-8 rounded-2xl shadow-2xl">
+        
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-extrabold text-white tracking-tight">
+            Primacom <span className="text-blue-400">ESB Monitoring</span>
+          </h2>
+          <p className="text-slate-300 mt-2 text-sm">Silahkan masuk ke dashboard</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 p-8">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-slate-800">Login</h2>
-            <p className="text-sm text-slate-500">Gunakan kredensial akun untuk mengakses dashboard.</p>
+        {error && (
+          <div className="bg-red-500/20 border border-red-500/50 text-red-200 text-sm p-3 rounded-lg mb-6 animate-pulse">
+            ⚠️ {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-slate-200 text-sm font-medium mb-2">Alamat Email</label>
+            <input
+              type="email"
+              required
+              className="w-full bg-slate-800/50 border border-slate-700 text-white p-3 rounded-xl"
+              placeholder="nama@perusahaan.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-900 focus:bg-white focus:border-transparent outline-none transition-all placeholder:text-slate-400"
-                placeholder="user@primakom.co.id"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+          <div>
+            <label className="block text-slate-200 text-sm font-medium mb-2">PIN Keamanan</label>
+            <input
+              type="password"
+              required
+              className="w-full bg-slate-800/50 border border-slate-700 text-white p-3 rounded-xl"
+              placeholder="••••••"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+            />
+          </div>
 
-            <div>
-              <div className="flex justify-between mb-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                  Password
-                </label>
-                <a href="#" className="text-xs font-semibold text-blue-800 hover:text-blue-600">
-                  Lupa Password?
-                </a>
-              </div>
-              <input
-                type="password"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-900 focus:bg-white focus:border-transparent outline-none transition-all placeholder:text-slate-400"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full flex items-center justify-center py-3 px-4 rounded-xl font-bold text-white ${
+              loading 
+                ? "bg-blue-800 cursor-not-allowed" 
+                : "bg-blue-600 hover:bg-blue-500"
+            }`}
+          >
+            {loading ? "Memproses..." : "Masuk Sekarang"}
+          </button>
+        </form>
 
-            <div className="flex items-center">
-              <input
-                id="remember"
-                type="checkbox"
-                className="h-4 w-4 text-blue-900 focus:ring-blue-900 border-slate-300 rounded cursor-pointer"
-              />
-              <label htmlFor="remember" className="ml-2 block text-sm text-slate-600 cursor-pointer">
-                Tetap login di perangkat ini
-              </label>
-            </div>
-
-            <button
-              // type="submit"
-              onClick={()=> window.location.href = "/dashboard"}
-              className="w-full bg-blue-900 hover:bg-slate-800 text-white font-bold py-3 rounded-lg shadow-md shadow-blue-900/20 transition-all active:scale-[0.98]"
-            >
-              MASUK KE DASHBOARD
-            </button>
-          </form>
-        </div>
-
-        {/* Support Footer */}
-        <p className="mt-8 text-center text-xs text-slate-400 uppercase tracking-widest">
-          &copy; {new Date().getFullYear()} Primacom. All rights reserved.
+        <p className="text-center text-slate-400 text-xs mt-8">
+          &copy; 2026 Enterprise Service Bus Designer. <br/> All rights reserved.
         </p>
       </div>
     </div>
   );
 };
 
-export default LoginScreen;
+export default Login;

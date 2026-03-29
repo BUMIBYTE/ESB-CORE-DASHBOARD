@@ -21,10 +21,10 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       const [cpuRes, memRes, serverRes,storageRes, jobRes] = await Promise.all([
-        axios.get(`${BASE_URL}/primakom/cpu`),
-        axios.get(`${BASE_URL}/primakom/memory`),
-        axios.get(`${BASE_URL}/primakom/server`),
-        axios.get(`${BASE_URL}/primakom/storage`),
+        axios.get(`${BASE_URL}/primacom/cpu`),
+        axios.get(`${BASE_URL}/primacom/memory`),
+        axios.get(`${BASE_URL}/primacom/server`),
+        axios.get(`${BASE_URL}/primacom/storage`),
         axios.get(`${BASE_URL}/jbang/jobs`)
       ]);
 
