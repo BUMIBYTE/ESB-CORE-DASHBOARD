@@ -38,6 +38,7 @@ const theme = {
   setProperty: { bg: "#e0f7fa", border: "#00acc1", icon: "🔑" },
   setBody: { bg: "#fff9c4", border: "#fbc02d", icon: "📦" },
   unmarshal: { bg: "#e0f2f1", border: "#00897b", icon: "🔓" },
+  marshal: { bg: "#f1f8e9", border: "#689f38", icon: "🔒" },
   default: { bg: "#ffffff", border: "#9e9e9e", icon: "🔹" },
 };
 
@@ -93,7 +94,7 @@ function Designer() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
-
+  
   const [showExport, setShowExport] = useState(false);
   const [showLoad, setShowLoad] = useState(false);
   const [yamlInput, setYamlInput] = useState("");
@@ -129,14 +130,14 @@ function Designer() {
       const startId = `from_${Date.now()}`;
       newNodes.push({
         id: startId, type: 'default', position: { x: 0, y: 0 },
-        data: {
-          label: 'START',
-          nodeType: 'timer',
-          config: {
-            id: route.id || startId,
+        data: { 
+          label: 'START', 
+          nodeType: 'timer', 
+          config: { 
+            id: route.id || startId, 
             uri: route.from.uri,
-            parameters: route.from.parameters
-          }
+            parameters: route.from.parameters 
+          } 
         }
       });
 
@@ -148,10 +149,10 @@ function Designer() {
           const type = Object.keys(step)[0];
           const rawConfig = step[type];
           const id = rawConfig.id || `${type}_${Math.random().toString(36).substr(2, 5)}`;
-
+          
           let nodeType = type === 'to' ? 'http' : type;
           let finalConfig = { ...rawConfig, id };
-
+          
           if (type === 'choice' && rawConfig.when) {
             finalConfig.condition = rawConfig.when[0].simple;
           }
@@ -162,10 +163,10 @@ function Designer() {
             data: { label: nodeType.toUpperCase(), nodeType, config: finalConfig }
           });
 
-          newEdges.push({
+          newEdges.push({ 
             id: `e_${prevId}_${id}`, source: prevId, target: id, sourceHandle: prevHandle,
             label: prevHandle === "true" ? "WHEN" : (prevHandle === "false" ? "OTHERWISE" : ""),
-            animated: true, markerEnd: { type: MarkerType.ArrowClosed }
+            animated: true, markerEnd: { type: MarkerType.ArrowClosed } 
           });
 
           if (type === 'choice') {
@@ -174,7 +175,7 @@ function Designer() {
           } else if (type === 'split' && rawConfig.steps) {
             parseSteps(rawConfig.steps, id);
           }
-
+          
           prevId = id;
           prevHandle = null;
         });
@@ -189,15 +190,38 @@ function Designer() {
   const handleExport = async () => {
     const jsyaml = await loadJsYaml();
     const yamlData = buildYamlStructure(nodes, edges);
-    // Kita bungkus dalam Array agar hasilnya diawali tanda dash "-"
     setYamlOutput(jsyaml.dump([yamlData], { noRefs: true, lineWidth: -1, quotingType: '"' }));
     setShowExport(true);
+  };
+
+  const handleCopyToClipboard = () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(yamlOutput)
+        .then(() => alert("Copied to clipboard!"))
+        .catch(() => fallbackCopy(yamlOutput));
+    } else {
+      fallbackCopy(yamlOutput);
+    }
+  };
+
+  const fallbackCopy = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      alert("Copied to clipboard!");
+    } catch (err) {
+      alert("Please copy manually.");
+    }
+    document.body.removeChild(textArea);
   };
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100vw", background: "#f0f2f5" }}>
       <div style={{ width: 280, padding: "20px", background: "#fff", borderRight: "1px solid #ddd", display: "flex", flexDirection: "column", zIndex: 10 }}>
-        <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "20px" }}>ESB Designer v4</h2>
+        <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "20px" }}>ESB Designer v6</h2>
         <div style={{ flexGrow: 1, overflowY: "auto", display: "grid", gap: "10px", paddingRight: "5px" }}>
           {Object.keys(theme).filter(t => t !== 'default').map(t => (
             <div key={t} draggable onDragStart={(e) => e.dataTransfer.setData("application/reactflow", t)}
@@ -214,20 +238,20 @@ function Designer() {
       </div>
 
       <div style={{ flex: 1, position: "relative" }}>
-        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} 
+          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} 
           deleteKeyCode={["Backspace", "Delete"]}
           onConnect={(p) => {
-            const label = p.sourceHandle === "true" ? "WHEN" : (p.sourceHandle === "false" ? "OTHERWISE" : "");
-            setEdges(eds => addEdge({ ...p, label, animated: true, markerEnd: { type: MarkerType.ArrowClosed } }, eds))
-          }}
+              const label = p.sourceHandle === "true" ? "WHEN" : (p.sourceHandle === "false" ? "OTHERWISE" : "");
+              setEdges(eds => addEdge({ ...p, label, animated: true, markerEnd: { type: MarkerType.ArrowClosed } }, eds))
+          }} 
           onDrop={(e) => {
             e.preventDefault();
             const type = e.dataTransfer.getData("application/reactflow");
             const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
             const id = `${type}_${Date.now()}`;
             setNodes(nds => [...nds, { id, type: type === 'choice' ? 'choiceNode' : 'default', position: pos, data: { label: type.toUpperCase(), nodeType: type, config: getDefaultConfig(type, id) } }]);
-          }}
+          }} 
           onDragOver={(e) => e.preventDefault()} onNodeClick={(_, n) => setSelectedNodeId(n.id)} onPaneClick={() => setSelectedNodeId(null)} fitView>
           <Background variant="dots" gap={20} />
           <Controls />
@@ -256,43 +280,10 @@ function Designer() {
 
       {showExport && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <div style={{ background: "#fff", padding: "25px", borderRadius: "12px", width: "800px", position: "relative" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
-              <h3 style={{ margin: 0 }}>Export Result</h3>
-              <button onClick={() => setShowExport(false)} style={{ border: "none", background: "none", fontSize: "20px", cursor: "pointer" }}>✕</button>
-            </div>
-
-            {/* Gunakan ID agar mudah diseleksi untuk fallback */}
-            <pre id="yaml-output" style={{ background: "#282c34", color: "#abb2bf", padding: "15px", borderRadius: "6px", overflow: "auto", maxHeight: "500px", fontSize: "12px", whiteSpace: "pre-wrap" }}>
-              {yamlOutput}
-            </pre>
-
-            <button
-              onClick={() => {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                  // Cara Modern (HTTPS/Localhost)
-                  navigator.clipboard.writeText(yamlOutput)
-                    .then(() => alert("Copied to clipboard!"))
-                    .catch(() => alert("Failed to copy. Please select and copy manually."));
-                } else {
-                  // Cara Fallback (Untuk non-HTTPS/Browser lama)
-                  const textArea = document.createElement("textarea");
-                  textArea.value = yamlOutput;
-                  document.body.appendChild(textArea);
-                  textArea.select();
-                  try {
-                    document.execCommand('copy');
-                    alert("Copied to clipboard (Fallback)! balance");
-                  } catch (err) {
-                    alert("Manual copy required.");
-                  }
-                  document.body.removeChild(textArea);
-                }
-              }}
-              style={{ marginTop: "15px", width: "100%", padding: "12px", background: "#2196f3", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer" }}
-            >
-              📋 Copy to Clipboard
-            </button>
+          <div style={{ background: "#fff", padding: "25px", borderRadius: "12px", width: "800px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}><h3>Export Result</h3><button onClick={() => setShowExport(false)} style={{ border: "none", background: "none", fontSize: "20px" }}>✕</button></div>
+            <pre style={{ background: "#282c34", color: "#abb2bf", padding: "15px", borderRadius: "6px", overflow: "auto", maxHeight: "500px", fontSize: "12px", whiteSpace: "pre-wrap" }}>{yamlOutput}</pre>
+            <button onClick={handleCopyToClipboard} style={{ marginTop: "15px", width: "100%", padding: "12px", background: "#1a1a1a", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer" }}>📋 Copy to Clipboard</button>
           </div>
         </div>
       )}
@@ -301,7 +292,7 @@ function Designer() {
 }
 
 // =====================
-// 🛠️ LOGIC FIXES
+// 🛠️ LOGIC COMPONENTS
 // =====================
 function ConfigPanel({ node, onChange }) {
   if (!node) return null;
@@ -313,16 +304,13 @@ function ConfigPanel({ node, onChange }) {
   return (
     <div>
       <label style={lStyle}>Custom ID</label><input style={iStyle} value={config.id || ""} onChange={(e) => onChange("id", e.target.value)} />
-      {nodeType === "timer" && (
-        <>
-          <label style={lStyle}>URI (ex: timer:tick?period=5000)</label>
-          <input style={iStyle} value={config.uri || ""} onChange={(e) => onChange("uri", e.target.value)} />
-        </>
-      )}
+      {nodeType === "timer" && <><label style={lStyle}>URI</label><input style={iStyle} value={config.uri || ""} onChange={(e) => onChange("uri", e.target.value)} /></>}
       {nodeType === "log" && <><label style={lStyle}>Message</label><textarea style={tStyle} value={config.message || ""} onChange={(e) => onChange("message", e.target.value)} /></>}
       {nodeType === "http" && <><label style={lStyle}>Target URI</label><input style={iStyle} value={config.uri || ""} onChange={(e) => onChange("uri", e.target.value)} /></>}
       {nodeType === "choice" && <><label style={lStyle}>Simple Condition</label><input style={iStyle} value={config.condition || ""} onChange={(e) => onChange("condition", e.target.value)} /></>}
       {nodeType === "split" && <><label style={lStyle}>Simple Expression</label><input style={iStyle} value={config.simple || ""} onChange={(e) => onChange("simple", e.target.value)} /></>}
+      {nodeType === "marshal" && <><label style={lStyle}>Library</label><input style={iStyle} value={config.json?.library || "Jackson"} disabled /></>}
+      {nodeType === "unmarshal" && <><label style={lStyle}>Library</label><input style={iStyle} value={config.json?.library || "Jackson"} disabled /></>}
       {nodeType === "setProperty" && <><label style={lStyle}>Property Name</label><input style={iStyle} value={config.name || ""} onChange={(e) => onChange("name", e.target.value)} /><label style={lStyle}>Value (Simple)</label><input style={iStyle} value={config.simple || ""} onChange={(e) => onChange("simple", e.target.value)} /></>}
       {nodeType === "setHeader" && <><label style={lStyle}>Header Name</label><input style={iStyle} value={config.name || ""} onChange={(e) => onChange("name", e.target.value)} /><label style={lStyle}>Value (Simple/Constant)</label><input style={iStyle} value={config.simple || config.constant || ""} onChange={(e) => onChange("simple", e.target.value)} /></>}
       {nodeType === "setBody" && <><label style={lStyle}>Body (Simple)</label><textarea style={tStyle} value={config.simple || ""} onChange={(e) => onChange("simple", e.target.value)} /></>}
@@ -335,6 +323,7 @@ function getDefaultConfig(type, id) {
   if (type === "timer") return { ...base, uri: "timer:tick?period=5000" };
   if (type === "choice") return { ...base, condition: "${body} != null" };
   if (type === "split") return { ...base, simple: "${body}" };
+  if (type === "marshal" || type === "unmarshal") return { ...base, json: { library: "Jackson" } };
   if (type === "setProperty") return { ...base, name: "myProp", simple: "${body}" };
   return base;
 }
@@ -352,13 +341,13 @@ function buildYamlStructure(nodes, edges) {
     const cfg = n.data.config;
     let currentStep = {};
 
-    // Mapping properties
     if (type === 'log') currentStep.log = { id: cfg.id, message: cfg.message };
     else if (type === 'http') currentStep.to = { id: cfg.id, uri: cfg.uri };
+    else if (type === 'marshal') currentStep.marshal = { id: cfg.id, json: { library: 'Jackson' } };
+    else if (type === 'unmarshal') currentStep.unmarshal = { id: cfg.id, json: { library: 'Jackson' } };
     else if (type === 'setHeader') currentStep.setHeader = { id: cfg.id, name: cfg.name, simple: cfg.simple || cfg.constant };
     else if (type === 'setProperty') currentStep.setProperty = { id: cfg.id, name: cfg.name, simple: cfg.simple };
     else if (type === 'setBody') currentStep.setBody = { id: cfg.id, simple: cfg.simple };
-    else if (type === 'unmarshal') currentStep.unmarshal = { id: cfg.id, json: { library: 'Jackson' } };
     else if (type === 'choice') {
       const tE = edges.find(e => e.source === n.id && e.sourceHandle === "true");
       const fE = edges.find(e => e.source === n.id && e.sourceHandle === "false");
@@ -368,7 +357,7 @@ function buildYamlStructure(nodes, edges) {
         otherwise: { steps: fE ? processNodeSteps(fE.target, new Set(processed)) : [] }
       };
       return [currentStep];
-    }
+    } 
     else if (type === 'split') {
       const nextE = edges.find(e => e.source === n.id);
       currentStep.split = { id: cfg.id, simple: cfg.simple, steps: nextE ? processNodeSteps(nextE.target, new Set(processed)) : [] };
@@ -389,11 +378,7 @@ function buildYamlStructure(nodes, edges) {
     }
   };
 
-  // Jika ada parameters di node timer, kita masukkan kembali ke YAML
-  if (startNode.data.config.parameters) {
-    routeObj.from.parameters = startNode.data.config.parameters;
-  }
-
+  if (startNode.data.config.parameters) routeObj.from.parameters = startNode.data.config.parameters;
   return { route: routeObj };
 }
 
