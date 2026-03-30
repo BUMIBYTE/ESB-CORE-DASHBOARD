@@ -93,7 +93,7 @@ function Designer() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
-  
+
   const [showExport, setShowExport] = useState(false);
   const [showLoad, setShowLoad] = useState(false);
   const [yamlInput, setYamlInput] = useState("");
@@ -129,7 +129,15 @@ function Designer() {
       const startId = `from_${Date.now()}`;
       newNodes.push({
         id: startId, type: 'default', position: { x: 0, y: 0 },
-        data: { label: 'START', nodeType: 'timer', config: { id: route.from.id || startId, uri: route.from.uri } }
+        data: {
+          label: 'START',
+          nodeType: 'timer',
+          config: {
+            id: route.id || startId,
+            uri: route.from.uri,
+            parameters: route.from.parameters
+          }
+        }
       });
 
       const parseSteps = (steps, parentId, sourceHandle = null) => {
@@ -140,11 +148,10 @@ function Designer() {
           const type = Object.keys(step)[0];
           const rawConfig = step[type];
           const id = rawConfig.id || `${type}_${Math.random().toString(36).substr(2, 5)}`;
-          
+
           let nodeType = type === 'to' ? 'http' : type;
-          
-          // Normalisasi config agar field 'simple' dari choice/split terbaca
           let finalConfig = { ...rawConfig, id };
+
           if (type === 'choice' && rawConfig.when) {
             finalConfig.condition = rawConfig.when[0].simple;
           }
@@ -155,10 +162,10 @@ function Designer() {
             data: { label: nodeType.toUpperCase(), nodeType, config: finalConfig }
           });
 
-          newEdges.push({ 
+          newEdges.push({
             id: `e_${prevId}_${id}`, source: prevId, target: id, sourceHandle: prevHandle,
             label: prevHandle === "true" ? "WHEN" : (prevHandle === "false" ? "OTHERWISE" : ""),
-            animated: true, markerEnd: { type: MarkerType.ArrowClosed } 
+            animated: true, markerEnd: { type: MarkerType.ArrowClosed }
           });
 
           if (type === 'choice') {
@@ -167,7 +174,7 @@ function Designer() {
           } else if (type === 'split' && rawConfig.steps) {
             parseSteps(rawConfig.steps, id);
           }
-          
+
           prevId = id;
           prevHandle = null;
         });
@@ -182,7 +189,8 @@ function Designer() {
   const handleExport = async () => {
     const jsyaml = await loadJsYaml();
     const yamlData = buildYamlStructure(nodes, edges);
-    setYamlOutput(jsyaml.dump(yamlData, { noRefs: true, lineWidth: -1 }));
+    // Kita bungkus dalam Array agar hasilnya diawali tanda dash "-"
+    setYamlOutput(jsyaml.dump([yamlData], { noRefs: true, lineWidth: -1, quotingType: '"' }));
     setShowExport(true);
   };
 
@@ -206,20 +214,20 @@ function Designer() {
       </div>
 
       <div style={{ flex: 1, position: "relative" }}>
-        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} 
-          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} 
+        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           deleteKeyCode={["Backspace", "Delete"]}
           onConnect={(p) => {
-              const label = p.sourceHandle === "true" ? "WHEN" : (p.sourceHandle === "false" ? "OTHERWISE" : "");
-              setEdges(eds => addEdge({ ...p, label, animated: true, markerEnd: { type: MarkerType.ArrowClosed } }, eds))
-          }} 
+            const label = p.sourceHandle === "true" ? "WHEN" : (p.sourceHandle === "false" ? "OTHERWISE" : "");
+            setEdges(eds => addEdge({ ...p, label, animated: true, markerEnd: { type: MarkerType.ArrowClosed } }, eds))
+          }}
           onDrop={(e) => {
             e.preventDefault();
             const type = e.dataTransfer.getData("application/reactflow");
             const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
             const id = `${type}_${Date.now()}`;
             setNodes(nds => [...nds, { id, type: type === 'choice' ? 'choiceNode' : 'default', position: pos, data: { label: type.toUpperCase(), nodeType: type, config: getDefaultConfig(type, id) } }]);
-          }} 
+          }}
           onDragOver={(e) => e.preventDefault()} onNodeClick={(_, n) => setSelectedNodeId(n.id)} onPaneClick={() => setSelectedNodeId(null)} fitView>
           <Background variant="dots" gap={20} />
           <Controls />
@@ -248,10 +256,43 @@ function Designer() {
 
       {showExport && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <div style={{ background: "#fff", padding: "25px", borderRadius: "12px", width: "800px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}><h3>Export Result</h3><button onClick={() => setShowExport(false)} style={{ border: "none", background: "none", fontSize: "20px" }}>✕</button></div>
-            <pre style={{ background: "#282c34", color: "#abb2bf", padding: "15px", borderRadius: "6px", overflow: "auto", maxHeight: "500px", fontSize: "12px" }}>{yamlOutput}</pre>
-            <button onClick={() => navigator.clipboard.writeText(yamlOutput)} style={{ marginTop: "15px", width: "100%", padding: "12px", background: "#1a1a1a", color: "#fff", border: "none", borderRadius: "6px" }}>Copy to Clipboard</button>
+          <div style={{ background: "#fff", padding: "25px", borderRadius: "12px", width: "800px", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+              <h3 style={{ margin: 0 }}>Export Result</h3>
+              <button onClick={() => setShowExport(false)} style={{ border: "none", background: "none", fontSize: "20px", cursor: "pointer" }}>✕</button>
+            </div>
+
+            {/* Gunakan ID agar mudah diseleksi untuk fallback */}
+            <pre id="yaml-output" style={{ background: "#282c34", color: "#abb2bf", padding: "15px", borderRadius: "6px", overflow: "auto", maxHeight: "500px", fontSize: "12px", whiteSpace: "pre-wrap" }}>
+              {yamlOutput}
+            </pre>
+
+            <button
+              onClick={() => {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  // Cara Modern (HTTPS/Localhost)
+                  navigator.clipboard.writeText(yamlOutput)
+                    .then(() => alert("Copied to clipboard!"))
+                    .catch(() => alert("Failed to copy. Please select and copy manually."));
+                } else {
+                  // Cara Fallback (Untuk non-HTTPS/Browser lama)
+                  const textArea = document.createElement("textarea");
+                  textArea.value = yamlOutput;
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  try {
+                    document.execCommand('copy');
+                    alert("Copied to clipboard (Fallback)! balance");
+                  } catch (err) {
+                    alert("Manual copy required.");
+                  }
+                  document.body.removeChild(textArea);
+                }
+              }}
+              style={{ marginTop: "15px", width: "100%", padding: "12px", background: "#2196f3", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer" }}
+            >
+              📋 Copy to Clipboard
+            </button>
           </div>
         </div>
       )}
@@ -272,7 +313,12 @@ function ConfigPanel({ node, onChange }) {
   return (
     <div>
       <label style={lStyle}>Custom ID</label><input style={iStyle} value={config.id || ""} onChange={(e) => onChange("id", e.target.value)} />
-      {nodeType === "timer" && <><label style={lStyle}>URI</label><input style={iStyle} value={config.uri || ""} onChange={(e) => onChange("uri", e.target.value)} /></>}
+      {nodeType === "timer" && (
+        <>
+          <label style={lStyle}>URI (ex: timer:tick?period=5000)</label>
+          <input style={iStyle} value={config.uri || ""} onChange={(e) => onChange("uri", e.target.value)} />
+        </>
+      )}
       {nodeType === "log" && <><label style={lStyle}>Message</label><textarea style={tStyle} value={config.message || ""} onChange={(e) => onChange("message", e.target.value)} /></>}
       {nodeType === "http" && <><label style={lStyle}>Target URI</label><input style={iStyle} value={config.uri || ""} onChange={(e) => onChange("uri", e.target.value)} /></>}
       {nodeType === "choice" && <><label style={lStyle}>Simple Condition</label><input style={iStyle} value={config.condition || ""} onChange={(e) => onChange("condition", e.target.value)} /></>}
@@ -305,7 +351,6 @@ function buildYamlStructure(nodes, edges) {
     const type = n.data.nodeType;
     const cfg = n.data.config;
     let currentStep = {};
-    let stepType = type === 'http' ? 'to' : type;
 
     // Mapping properties
     if (type === 'log') currentStep.log = { id: cfg.id, message: cfg.message };
@@ -322,8 +367,8 @@ function buildYamlStructure(nodes, edges) {
         when: [{ simple: cfg.condition, steps: tE ? processNodeSteps(tE.target, new Set(processed)) : [] }],
         otherwise: { steps: fE ? processNodeSteps(fE.target, new Set(processed)) : [] }
       };
-      return [currentStep]; // Choice is branching terminal
-    } 
+      return [currentStep];
+    }
     else if (type === 'split') {
       const nextE = edges.find(e => e.source === n.id);
       currentStep.split = { id: cfg.id, simple: cfg.simple, steps: nextE ? processNodeSteps(nextE.target, new Set(processed)) : [] };
@@ -336,15 +381,20 @@ function buildYamlStructure(nodes, edges) {
     return results;
   };
 
-  return {
-    route: {
-      id: startNode.data.config.id || "route-" + Date.now(),
-      from: {
-        uri: startNode.data.config.uri,
-        steps: processNodeSteps(edges.find(e => e.source === startNode.id)?.target, new Set([startNode.id]))
-      }
+  const routeObj = {
+    id: startNode.data.config.id || "route-" + Date.now(),
+    from: {
+      uri: startNode.data.config.uri,
+      steps: processNodeSteps(edges.find(e => e.source === startNode.id)?.target, new Set([startNode.id]))
     }
   };
+
+  // Jika ada parameters di node timer, kita masukkan kembali ke YAML
+  if (startNode.data.config.parameters) {
+    routeObj.from.parameters = startNode.data.config.parameters;
+  }
+
+  return { route: routeObj };
 }
 
 export default function App() {
