@@ -76,7 +76,7 @@ const Login = () => {
           </div>
 
           <div>
-            <label className="block text-slate-200 text-sm font-medium mb-2">PIN Keamanan</label>
+            <label className="block text-slate-200 text-sm font-medium mb-2">Password Keamanan</label>
             <input
               type="password"
               required

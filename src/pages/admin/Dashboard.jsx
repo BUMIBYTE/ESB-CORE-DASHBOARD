@@ -14,7 +14,7 @@ const Dashboard = () => {
 
   const [rawMem, setRawMem] = useState({ used: 0, total: 1 });
 
-  const BASE_URL = BaseUrlItacha;
+  const BASE_URL = BaseUrlTest;
 
   const toGB = (mb) => (mb / 1024).toFixed(2);
 
