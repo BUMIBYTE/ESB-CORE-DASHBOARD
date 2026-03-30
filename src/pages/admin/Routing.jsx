@@ -9,7 +9,7 @@ import {
 import { BaseUrlTest, BaseUrlBB, BaseUrlItacha } from '../../api/apiservice';
 
 const Routing = () => {
-  const BASE_URL = BaseUrlBB
+  const BASE_URL = BaseUrlItacha
    + "/jbang";
 
   // --- STATE DATA ---
