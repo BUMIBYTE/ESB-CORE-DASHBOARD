@@ -15,6 +15,8 @@ function App() {
     <Routes>
       {/* PUBLIC */}
       <Route path="/login" element={<Login />} />
+      <Route path="/canvas" element={<Canvas />} />
+
 
       {/* PROTECTED */}
       <Route

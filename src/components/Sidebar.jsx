@@ -1,36 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import api from "../api/axios"; // 🔥 pastikan path benar
+import api from "../api/axios";
 
 function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 🔥 state user
   const [user, setUser] = useState({
     fullName: "Administrator",
     email: "admin@primakom.co.id",
   });
 
-  // 🔥 cek active menu
   const isActive = (path) => location.pathname === path;
 
-  // 🔥 menu
+  // 🔥 Tambahkan properti newTab: true khusus untuk ESB Canvas
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: "📊" },
     { name: "Routing", path: "/routing", icon: "🛤️" },
-    { name: "ESB Canvas", path: "/canvas", icon: "🎨" },
+    { name: "ESB Canvas", path: "/canvas", icon: "🎨", newTab: true }, 
     { name: "Account", path: "/account", icon: "👤" },
   ];
 
-  // =====================
-  // 🔥 GET USER DATA
-  // =====================
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await api.get("/auth/verifySessions");
-
         if (res.data.code === 200) {
           setUser({
             fullName: res.data.data.fullName,
@@ -41,13 +35,9 @@ function Sidebar() {
         console.error("Failed get user:", err);
       }
     };
-
     fetchUser();
   }, []);
 
-  // =====================
-  // 🔥 LOGOUT
-  // =====================
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("userId");
@@ -72,39 +62,56 @@ function Sidebar() {
 
       {/* MENU */}
       <nav className="flex-1 px-4 space-y-1">
-        {menuItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-              isActive(item.path)
-                ? "bg-blue-600/10 text-blue-400 border border-blue-600/20"
-                : "hover:bg-slate-800 hover:text-white"
-            }`}
-          >
-            <span className="text-xl">{item.icon}</span>
+        {menuItems.map((item) => {
+          const commonClass = `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+            isActive(item.path)
+              ? "bg-blue-600/10 text-blue-400 border border-blue-600/20"
+              : "hover:bg-slate-800 hover:text-white"
+          }`;
 
-            <span className="font-medium text-sm">
-              {item.name}
-            </span>
+          const content = (
+            <>
+              <span className="text-xl">{item.icon}</span>
+              <span className="font-medium text-sm">{item.name}</span>
+              {isActive(item.path) && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500" />
+              )}
+            </>
+          );
 
-            {isActive(item.path) && (
-              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500" />
-            )}
-          </Link>
-        ))}
+          // 🔥 Jika item memiliki newTab: true, gunakan tag <a> biasa
+          if (item.newTab) {
+            return (
+              <a
+                key={item.path}
+                href={item.path}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={commonClass}
+              >
+                {content}
+                {/* Optional: Tambah icon kecil indikator external link */}
+                <span className="text-[10px] opacity-40 group-hover:opacity-100">↗</span>
+              </a>
+            );
+          }
+
+          // Default menu menggunakan Link SPA
+          return (
+            <Link key={item.path} to={item.path} className={commonClass}>
+              {content}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* FOOTER */}
+      {/* FOOTER - USER & LOGOUT */}
       <div className="p-4 mt-auto">
         <div className="bg-slate-800/40 rounded-2xl p-4 border border-slate-700/50">
-          
-          {/* USER */}
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold text-white">
               {user.fullName?.charAt(0) || "A"}
             </div>
-
             <div className="overflow-hidden">
               <p className="text-sm font-semibold text-white truncate">
                 {user.fullName}
@@ -114,8 +121,6 @@ function Sidebar() {
               </p>
             </div>
           </div>
-
-          {/* LOGOUT */}
           <button
             onClick={handleLogout}
             className="w-full mt-3 text-[11px] font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-widest pt-2 border-t border-slate-700/50"
