@@ -23,7 +23,7 @@ const Dashboard = () => {
       const [cpuRes, memRes, serverRes,storageRes, jobRes] = await Promise.all([
         axios.get(`${BASE_URL}/primacom/cpu`),
         axios.get(`${BASE_URL}/primacom/memory`),
-        axios.get(`${BASE_URL}/primacom/server`),
+        axios.get(`${BASE_URL}/primacom/servers`),
         axios.get(`${BASE_URL}/primacom/storage`),
         axios.get(`${BASE_URL}/jbang/jobs`)
       ]);

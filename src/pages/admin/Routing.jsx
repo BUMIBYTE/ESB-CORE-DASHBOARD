@@ -7,10 +7,13 @@ import {
   Eye, Code2, TerminalIcon, ChevronDown
 } from 'lucide-react';
 import { BaseUrlTest, BaseUrlBB, BaseUrlItacha } from '../../api/apiservice';
+import api from '../../api/axios';
 
 const Routing = () => {
   const BASE_URL = BaseUrlTest
    + "/jbang";
+
+  const BASE_URLLicense = BaseUrlTest;
 
   // --- STATE DATA ---
   const [folders, setFolders] = useState([]);
@@ -46,6 +49,7 @@ const Routing = () => {
   const [lastActivity, setLastActivity] = useState(null);
   const scrollRef = useRef(null);
   const isAutoScrollEnabled = useRef(true); // Flag untuk cek apakah user sedang scroll manual
+  const [licenseInfo, setLicenseInfo] = useState({});
 
   // 1. DATA FETCHING
   const fetchFolders = async () => {
@@ -58,6 +62,27 @@ const Routing = () => {
         handleSelectFolder(filtered[0].name);
       }
     } catch (err) { console.error("Error folders:", err); }
+  };
+
+  const fetchLicenseData = async () => {
+    try {
+      // 1. Cek Status ON/OFF (Menerima boolean true/false dari backend)
+      const statusRes = await api.get(`${BASE_URLLicense}/license/validated`);
+      setLicenseInfo({
+        isValid: statusRes.data.isValid,
+        plan: statusRes.data.plan || "Unknown",
+        expiryDate: statusRes.data.expiredAt || "Unknown",
+        message: statusRes.data.message || "",
+        statusCode: statusRes.data.status || "Deactive",
+        licenseKey: statusRes.data.licenseKey || "N/A",
+        folderQuota: statusRes.data.folderQuota || 0, // Default quota jika tidak ada data
+        routeQuota: statusRes.data.routeQuota || 0, // Default quota jika tidak ada data
+      });
+      console.log("Status License:", statusRes.data);
+
+    } catch (err) {
+      console.error("Gagal mengambil data firewall:", err);
+    }
   };
 
   const fetchJobs = async () => {
@@ -278,6 +303,7 @@ const Routing = () => {
   // --- USE EFFECTS ---
   useEffect(() => {
     fetchFolders();
+    fetchLicenseData();
     const interval = setInterval(fetchJobs, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -322,7 +348,11 @@ const Routing = () => {
               <div className="p-2 bg-indigo-600 rounded-lg text-white shadow-lg"><Layers size={18} /></div>
               <h2 className="font-black text-slate-800 uppercase tracking-tighter">Workspace</h2>
             </div>
-            <button onClick={() => setIsFolderModalOpen(true)} className="p-2 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white rounded-xl transition-all"><FolderPlus size={18} /></button>
+            {licenseInfo.folderQuota > folders.length && (
+              <button onClick={() => {
+                setIsFolderModalOpen(true)
+              }} className="p-2 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white rounded-xl transition-all"><FolderPlus size={18} /></button>
+            )}
           </div>
           <div className="space-y-1.5 overflow-y-auto max-h-[70vh] custom-scrollbar">
             {folders.map((f) => (
@@ -345,9 +375,11 @@ const Routing = () => {
             <h1 className="text-2xl font-black text-slate-800 tracking-tighter">{selectedFolder || "Select Workspace"}</h1>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Route Registry</p>
           </div>
-          <button disabled={!selectedFolder} onClick={() => setIsModalOpen(true)} className={`px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl transition-all ${!selectedFolder ? 'bg-slate-100 text-slate-300' : 'bg-slate-900 hover:bg-indigo-600 text-white shadow-indigo-100'}`}>
-            <Plus size={16} strokeWidth={4} className="mr-2 inline" /> New Route
-          </button>
+          {licenseInfo.routeQuota > files.length && (
+            <button disabled={!selectedFolder} onClick={() => setIsModalOpen(true)} className={`px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl transition-all ${!selectedFolder ? 'bg-slate-100 text-slate-300' : 'bg-slate-900 hover:bg-indigo-600 text-white shadow-indigo-100'}`}>
+              <Plus size={16} strokeWidth={4} className="mr-2 inline" /> New Route
+            </button>
+          )}
         </header>
 
         <section className="flex-1 p-10 bg-[#fbfcfd] overflow-y-auto">

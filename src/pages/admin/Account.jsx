@@ -21,6 +21,11 @@ const Account = () => {
   const [fwRules, setFwRules] = useState([]);
   const [isFwActive, setIsFwActive] = useState(false);
   const [fwLoading, setFwLoading] = useState(false);
+  const [licenseInfo, setLicenseInfo] = useState({
+    isValid: false,
+    plan: "Unknown",
+    expiryDate: "Unknown"
+  });
   
   // Form State Tambah Rule Baru
   const [newRule, setNewRule] = useState({
@@ -78,10 +83,35 @@ const Account = () => {
     }
   };
 
+  const fetchLicenseData = async () => {
+    setFwLoading(true);
+    try {
+      // 1. Cek Status ON/OFF (Menerima boolean true/false dari backend)
+      const statusRes = await api.get("/license/validated");
+      setLicenseInfo({
+        isValid: statusRes.data.isValid,
+        plan: statusRes.data.plan || "Unknown",
+        expiryDate: statusRes.data.expiredAt || "Unknown",
+        message: statusRes.data.message || "",
+        statusCode: statusRes.data.status || "Deactive",
+        licenseKey: statusRes.data.licenseKey || "N/A"
+      });
+      console.log("Status License:", statusRes.data);
+
+    } catch (err) {
+      console.error("Gagal mengambil data firewall:", err);
+    } finally {
+      setFwLoading(false);
+    }
+  };
+
   // Panggil data jika tab firewall dibuka
   useEffect(() => {
     if (activeTab === 'firewall') {
       fetchFirewallData();
+    }
+    if (activeTab === 'license') {
+      fetchLicenseData();
     }
   }, [activeTab]);
 
@@ -134,6 +164,8 @@ const Account = () => {
     }
   };
 
+  const opsi = { year: 'numeric', month: 'long', day: 'numeric' };
+
   return (
     <div className="p-8 bg-slate-50 min-h-screen font-sans">
       <div className="max-w-screen-lg mx-auto">
@@ -150,7 +182,6 @@ const Account = () => {
             <TabButton label="Update Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon="👤" />
             <TabButton label="License & SN" active={activeTab === 'license'} onClick={() => setActiveTab('license')} icon="🔑" />
             <TabButton label="Firewall Security" active={activeTab === 'firewall'} onClick={() => setActiveTab('firewall')} icon="🛡️" />
-            <TabButton label="Billing History" active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} icon="💳" />
           </div>
 
           {/* MAIN CONTENT CONTAINER */}
@@ -162,13 +193,10 @@ const Account = () => {
                 <h3 className="text-lg font-bold text-slate-800 mb-6">Profile Settings</h3>
                 <div className="space-y-5">
                   <div className="grid grid-cols-2 gap-4">
-                    <InputGroup label="Full Name" defaultValue={accountInfo.name} />
+                    <InputGroup label="Full Name" defaultValue={accountInfo.name} disabled/>
                     <InputGroup label="Role" defaultValue={accountInfo.role} disabled />
                   </div>
-                  <InputGroup label="Email Address" defaultValue={accountInfo.email} />
-                  <div className="pt-4">
-                    <button className="bg-blue-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm">Save Changes</button>
-                  </div>
+                  <InputGroup label="Email Address" defaultValue={accountInfo.email} disabled/>
                 </div>
               </div>
             )}
@@ -181,11 +209,11 @@ const Account = () => {
                     <h3 className="text-lg font-bold text-slate-800">License Management</h3>
                     <p className="text-xs text-slate-400 mt-1">Status lisensi ESB Anda.</p>
                   </div>
-                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full">ACTIVE</span>
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full">{licenseInfo.statusCode}</span>
                 </div>
                 <div className="bg-slate-900 rounded-2xl p-6 mb-8 text-white">
                   <p className="text-[10px] text-slate-400 uppercase mb-1">Serial Number</p>
-                  <p className="text-xl font-mono text-blue-300">{accountInfo.serialNumber}</p>
+                  <p className="text-xl font-mono text-blue-300">{licenseInfo.licenseKey}</p>
                   <div className="mt-6 flex gap-8">
                     <div>
                       <p className="text-[10px] text-slate-500 uppercase">Plan</p>
@@ -193,15 +221,8 @@ const Account = () => {
                     </div>
                     <div>
                       <p className="text-[10px] text-slate-500 uppercase">Expired</p>
-                      <p className="text-sm font-bold text-orange-400">{accountInfo.expiryDate}</p>
+                      <p className="text-sm font-bold text-orange-400">{new Date(licenseInfo.expiryDate).toLocaleDateString('id-ID', opsi)}</p>
                     </div>
-                  </div>
-                </div>
-                <div className="border-t pt-8">
-                  <h4 className="text-sm font-bold text-slate-700 mb-4">Update SN</h4>
-                  <div className="flex gap-3">
-                    <input type="text" value={snInput} onChange={(e) => setSnInput(e.target.value)} className="flex-1 px-4 py-3 border rounded-xl" />
-                    <button className="bg-slate-800 text-white px-6 py-3 rounded-xl">Update</button>
                   </div>
                 </div>
               </div>
