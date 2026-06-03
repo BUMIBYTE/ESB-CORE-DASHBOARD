@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { Cpu, Database, Activity, Globe, Server, RefreshCcw, LayoutDashboard, Zap, LucideMemoryStick } from 'lucide-react';
-import { BaseUrlTest, BaseUrl, BaseUrlItacha, BaseUrlBB } from '../../api/apiservice';
-import { CiFloppyDisk } from 'react-icons/ci';
+import api from '../../api/axios';
 
 const Dashboard = () => {
   const [serverSpecs, setServerSpecs] = useState({});
@@ -14,18 +12,16 @@ const Dashboard = () => {
 
   const [rawMem, setRawMem] = useState({ used: 0, total: 1 });
 
-  const BASE_URL = BaseUrlTest;
-
   const toGB = (mb) => (mb / 1024).toFixed(2);
 
   const fetchData = async () => {
     try {
       const [cpuRes, memRes, serverRes,storageRes, jobRes] = await Promise.all([
-        axios.get(`${BASE_URL}/primacom/cpu`),
-        axios.get(`${BASE_URL}/primacom/memory`),
-        axios.get(`${BASE_URL}/primacom/servers`),
-        axios.get(`${BASE_URL}/primacom/storage`),
-        axios.get(`${BASE_URL}/jbang/jobs`)
+        api.get("/primacom/cpu"),
+        api.get("/primacom/memory"),
+        api.get("/primacom/servers"),
+        api.get("/primacom/storage"),
+        api.get("/jbang/jobs")
       ]);
 
       const cpu = cpuRes.data.data;

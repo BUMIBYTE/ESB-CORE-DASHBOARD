@@ -1,19 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
 import {
   FolderPlus, Folder, Plus, X, Trash2, Search,
   FileCode, Layers, Monitor, HardDrive, Loader2,
   Terminal, Activity, Play, Square, Save, XCircle,
   Eye, Code2, TerminalIcon, ChevronDown
 } from 'lucide-react';
-import { BaseUrlTest, BaseUrlBB, BaseUrlItacha } from '../../api/apiservice';
 import api from '../../api/axios';
 
 const Routing = () => {
-  const BASE_URL = BaseUrlTest
-   + "/jbang";
-
-  const BASE_URLLicense = BaseUrlTest;
 
   // --- STATE DATA ---
   const [folders, setFolders] = useState([]);
@@ -54,7 +48,7 @@ const Routing = () => {
   // 1. DATA FETCHING
   const fetchFolders = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/folders`);
+      const res = await api.get(`/jbang/folders`);
       const data = res.data.data || [];
       const filtered = data.filter(f => f.name !== '.versions');
       setFolders(filtered);
@@ -67,7 +61,7 @@ const Routing = () => {
   const fetchLicenseData = async () => {
     try {
       // 1. Cek Status ON/OFF (Menerima boolean true/false dari backend)
-      const statusRes = await api.get(`${BASE_URLLicense}/license/validated`);
+      const statusRes = await api.get("/license/validated");
       setLicenseInfo({
         isValid: statusRes.data.isValid,
         plan: statusRes.data.plan || "Unknown",
@@ -87,14 +81,14 @@ const Routing = () => {
 
   const fetchJobs = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/jobs`);
+      const res = await api.get(`/jbang/jobs`);
       setActiveJobs(res.data.data || []);
     } catch (err) { console.error("Error jobs:", err); }
   };
 
   const fetchFiles = async (folderName) => {
     try {
-      const res = await axios.get(`${BASE_URL}/folder?path=${folderName}`);
+      const res = await api.get(`/jbang/folder?path=${folderName}`);
       setFiles(res.data.data.files || []);
     } catch (err) { setFiles([]); }
   };
@@ -102,7 +96,7 @@ const Routing = () => {
   const fetchFileVersions = async (filePath) => {
     setIsVersionsLoading(true);
     try {
-      const res = await axios.get(`${BASE_URL}/file/versions?path=${encodeURIComponent(filePath)}`);
+      const res = await api.get(`/jbang/file/versions?path=${encodeURIComponent(filePath)}`);
       setVersions(res.data.data || []);
     } catch (err) { setVersions([]); }
     finally { setIsVersionsLoading(false); }
@@ -111,7 +105,7 @@ const Routing = () => {
   // --- LOG FETCHING LOGIC ---
   const fetchLogs = async (jobId) => {
     try {
-      const res = await axios.get(`${BASE_URL}/logs/${jobId}`);
+      const res = await api.get(`/jbang/logs/${jobId}`);
       setTerminalLogs(res.data || []);
     } catch (err) {
       console.error("Error logs:", err);
@@ -152,7 +146,7 @@ const Routing = () => {
   const handleCreateFolder = async () => {
     if (!newFolderName) return;
     try {
-      await axios.post(`${BASE_URL}/folder?name=${newFolderName}`);
+      await api.post(`/jbang/folder?name=${newFolderName}`);
       setNewFolderName('');
       setIsFolderModalOpen(false);
       fetchFolders();
@@ -163,7 +157,7 @@ const Routing = () => {
     e.stopPropagation();
     if (!window.confirm(`Hapus workspace "${folderName}"?`)) return;
     try {
-      await axios.delete(`${BASE_URL}/folder?path=${folderName}`);
+      await api.delete(`/jbang/folder?path=${folderName}`);
       if (selectedFolder === folderName) setSelectedFolder(null);
       fetchFolders();
     } catch (err) { alert("Gagal menghapus folder."); }
@@ -178,7 +172,7 @@ const Routing = () => {
     }
     if (!window.confirm(`Apakah Anda yakin ingin menghapus file ${fileName}?`)) return;
     try {
-      await axios.delete(`${BASE_URL}/file?path=${fullPath}`);
+      await api.delete(`/jbang/file?path=${fullPath}`);
       if (editingFile?.name === fileName) setEditingFile(null);
       fetchFiles(selectedFolder);
     } catch (err) { alert("Gagal menghapus file."); }
@@ -187,7 +181,7 @@ const Routing = () => {
   const handleReadFile = async (fileName) => {
     const fullPath = `${selectedFolder}/${fileName}`;
     try {
-      const res = await axios.get(`${BASE_URL}/read?path=${encodeURIComponent(fullPath)}`);
+      const res = await api.get(`/jbang/read?path=${encodeURIComponent(fullPath)}`);
       if (res.data.code === 200) {
         const content = res.data.data.content || '';
         setEditingFile({ name: fileName, path: fullPath });
@@ -204,8 +198,8 @@ const Routing = () => {
     if (!editingFile) return;
     setIsSaving(true);
     try {
-      await axios.put(
-        `${BASE_URL}/file?path=${encodeURIComponent(editingFile.path)}`,
+      await api.put(
+        `/jbang/file?path=${encodeURIComponent(editingFile.path)}`,
         editorContent,
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -220,7 +214,7 @@ const Routing = () => {
   const handlePreviewVersion = async (versionName) => {
     if (previewVersion === versionName) return;
     try {
-      const res = await axios.get(`${BASE_URL}/file/read-version?path=${encodeURIComponent(editingFile.path)}&version=${versionName}`);
+      const res = await api.get(`/jbang/file/read-version?path=${encodeURIComponent(editingFile.path)}&version=${versionName}`);
       if (res.data.code === 200) {
         setPreviewVersion(versionName);
         setEditorContent(res.data.data.content || '');
@@ -236,7 +230,7 @@ const Routing = () => {
   const handleRestoreVersion = async (versionName) => {
     if (!window.confirm(`Restore ke versi ${versionName}?`)) return;
     try {
-      const res = await axios.post(`${BASE_URL}/file/restore?path=${encodeURIComponent(editingFile.path)}&version=${versionName}`);
+      const res = await api.post(`/jbang/file/restore?path=${encodeURIComponent(editingFile.path)}&version=${versionName}`);
       if (res.data.code === 200) {
         alert("✅ Restored!");
         handleReadFile(editingFile.name);
@@ -271,7 +265,7 @@ const Routing = () => {
     if (!newFileName) return;
     try {
       const defaultYaml = "- from:\n    uri: 'timer:yaml?period=5000'\n    steps:\n      - setBody:\n          constant: 'Hello from Primakom ESB'\n      - log: '${body}'";
-      await axios.post(`${BASE_URL}/file?folder=${selectedFolder}&fileName=${newFileName}.yaml`, { content: defaultYaml });
+      await api.post(`/jbang/file?folder=${selectedFolder}&fileName=${newFileName}.yaml`, { content: defaultYaml });
       setNewFileName('');
       setIsModalOpen(false);
       fetchFiles(selectedFolder);
@@ -283,7 +277,7 @@ const Routing = () => {
     if (!port) return;
     setLoadingAction(fileName);
     try {
-      await axios.post(`${BASE_URL}/run?path=${encodeURIComponent(selectedFolder + '/' + fileName)}&port=${port}`);
+      await api.post(`/jbang/run?path=${encodeURIComponent(selectedFolder + '/' + fileName)}&port=${port}`);
       setTimeout(fetchJobs, 2000);
     } catch (err) { alert("Run gagal."); }
     finally { setLoadingAction(null); }
@@ -294,7 +288,7 @@ const Routing = () => {
     if (!job) return;
     setLoadingAction(fileName);
     try {
-      await axios.post(`${BASE_URL}/stop?jobId=${job.id}`);
+      await api.post(`/jbang/stop?jobId=${job.id}`);
       setTimeout(fetchJobs, 1500);
     } catch (err) { alert("Stop gagal."); }
     finally { setLoadingAction(null); }
