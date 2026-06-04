@@ -9,6 +9,7 @@ import Routing from "./pages/admin/Routing";
 import Account from "./pages/admin/Account";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import MultiTenantApp from "./pages/primacom/HomePrimacom";
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
       {/* PUBLIC */}
       <Route path="/login" element={<Login />} />
       <Route path="/canvas" element={<Canvas />} />
-
+      <Route path="/primacom" element={<MultiTenantApp />} />
 
       {/* PROTECTED */}
       <Route
