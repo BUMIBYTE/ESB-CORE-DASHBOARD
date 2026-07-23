@@ -102,7 +102,7 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="p-6 md:p-10 bg-[#f8fafc] min-h-screen font-sans text-slate-900">
+    <div className="p-6 md:p-10 bg-[#06090e] min-h-screen font-sans text-slate-900">
 
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">

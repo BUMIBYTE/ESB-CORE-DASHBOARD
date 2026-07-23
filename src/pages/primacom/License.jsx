@@ -12,8 +12,8 @@ const LicenseManagement = ({ ipAddress }) => {
 
   // State Form Input untuk Generate / Update License baru
   const [durationDays, setDurationDays] = useState(365); // default 1 tahun
-  const [maxFolders, setMaxFolders] = useState(5);
-  const [maxRoutes, setMaxRoutes] = useState(10);
+  const [maxFolders, setMaxFolders] = useState(2);
+  const [maxRoutes, setMaxRoutes] = useState(4);
   const [generateLoading, setGenerateLoading] = useState(false);
 
   // ==========================================
@@ -205,7 +205,7 @@ const LicenseManagement = ({ ipAddress }) => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Max Folders Allocation</label>
                   <input 
@@ -230,7 +230,7 @@ const LicenseManagement = ({ ipAddress }) => {
                     required 
                   />
                 </div>
-              </div>
+              </div> */}
 
               <div className="flex gap-3 pt-4 border-t border-slate-100 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-3 rounded-xl">Batal</button>

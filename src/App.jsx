@@ -2,22 +2,32 @@ import { Routes, Route } from "react-router-dom";
 
 import Login from "./pages/auth/Login";
 import Layout from "./components/Layout";
-
-import Dashboard from "./pages/admin/Dashboard";
-import Canvas from "./pages/admin/Canvas";
-import Routing from "./pages/admin/Routing";
-import Account from "./pages/admin/Account";
-
+import DashboardPrimacom from "./pages/main/DashboardScreen";
 import ProtectedRoute from "./components/ProtectedRoute";
-import MultiTenantApp from "./pages/primacom/HomePrimacom";
+import TrafficScreen from "./pages/main/TrafficScreen";
+import CamelScreen from "./pages/main/CamelScreen";
+import SitesScreen from "./pages/main/SitesScreen";
+import KafkaScreen from "./pages/main/KafkaScreen";
+import RoutesScreen from "./pages/main/RoutesScreen";
+import AppScreen from "./pages/main/AppsScreen";
+import MarketplaceScreen from "./pages/main/MarketplaceScreen";
+import RbacScreen from "./pages/main/RbacScreen";
+import TenantsScreen from "./pages/main/TenantsScreen";
+import SettingsScreen from "./pages/main/SettingsScreen";
+
+// import Dashboard from "./pages/admin/Dashboard";
+// import Canvas from "./pages/admin/Canvas";
+// import Routing from "./pages/admin/Routing";
+// import Account from "./pages/admin/Account";
+// import MultiTenantApp from "./pages/primacom/HomePrimacom";
 
 function App() {
   return (
     <Routes>
       {/* PUBLIC */}
       <Route path="/login" element={<Login />} />
-      <Route path="/canvas" element={<Canvas />} />
-      <Route path="/primacom" element={<MultiTenantApp />} />
+      {/* <Route path="/canvas" element={<Canvas />} />
+      <Route path="/primacom" element={<MultiTenantApp />} /> */}
 
       {/* PROTECTED */}
       <Route
@@ -28,10 +38,25 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="dashboard" element={<Dashboard />} />
+        {/* <Route path="dashboard" element={<Dashboard />} />
         <Route path="canvas" element={<Canvas />} />
         <Route path="routing" element={<Routing />} />
-        <Route path="account" element={<Account />} />
+        <Route path="account" element={<Account />} /> */}
+
+        <Route path="dashboard" element={<DashboardPrimacom />} />
+        <Route path="traffic" element={<TrafficScreen />} />
+        <Route path="camel" element={<CamelScreen />} />
+        <Route path="sites" element={<SitesScreen />} />
+        <Route path="kafka" element={<KafkaScreen />} />
+
+        <Route path="routes" element={<RoutesScreen />} />
+        <Route path="apps" element={<AppScreen />} />
+        <Route path="marketplace" element={<MarketplaceScreen />} />
+
+        <Route path="rbac" element={<RbacScreen />} />
+        <Route path="tenants" element={<TenantsScreen />} />
+        <Route path="settings" element={<SettingsScreen />} />
+
       </Route>
     </Routes>
   );

@@ -332,7 +332,7 @@ const Routing = () => {
   }, [terminalLogs]);
 
   return (
-    <div className="flex h-screen bg-[#f8fafc] font-sans text-slate-900 overflow-hidden text-sm">
+    <div className="flex h-screen bg-[#06090e] font-sans text-slate-900 overflow-hidden text-sm">
 
       {/* --- SIDEBAR --- */}
       <aside className="w-80 bg-white border-r border-slate-200 flex flex-col shadow-sm">

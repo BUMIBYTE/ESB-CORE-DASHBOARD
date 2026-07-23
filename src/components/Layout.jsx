@@ -32,8 +32,8 @@ function Layout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         
         {/* Top Navbar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-2">
+        <header className="h-16 bg-[#06090e]  border-b  flex items-center justify-between px-8 shrink-0">
+          {/* <div className="flex items-center gap-2">
             <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-2 py-1 rounded">
               System ID: PK-MON-01
             </span>
@@ -48,7 +48,7 @@ function Layout() {
             <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
               <span>🔔</span>
             </button>
-          </div>
+          </div> */}
         </header>
 
         {/* Main Content Area */}
@@ -83,7 +83,7 @@ function Layout() {
             </div>
           ) : (
             /* TAMPILAN NORMAL JIKA LISENSI VALID */
-            <div className="max-w-[1600px] mx-auto p-8">
+            <div className="mx-auto">
               <Outlet />
             </div>
           )}
