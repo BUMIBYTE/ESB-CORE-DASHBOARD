@@ -101,22 +101,24 @@ export default function MembersPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = modalMode === "create" ? "/api/members" : `/api/members/${selectedMemberId}`;
-    const method = modalMode === "create" ? "POST" : "PUT";
-
+    const payload = {
+      fullName: formData.fullName,
+      email: formData.email,
+      phone: formData.phone,
+      idRole: formData.idRole,
+      tenant: formData.tenant.join(","),
+      pin: formData.pin,
+      address: formData.address
+    };
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      });
-
-      if (res.ok) {
-        setIsModalOpen(false);
+      if(modalMode === "create") {
+        await api.post("/user/members", payload);
         fetchData();
-      } else {
-        alert("Gagal menyimpan member");
+      }else{
+        await api.put(`/user/members/${selectedMemberId}`, payload);
+        fetchData();
       }
+      setIsModalOpen(false);
     } catch (err) {
       console.error("Error submitting form:", err);
     }
@@ -125,8 +127,8 @@ export default function MembersPage() {
   const handleDelete = async (id) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus member ini?")) {
       try {
-        const res = await fetch(`/api/members/${id}`, { method: "DELETE" });
-        if (res.ok) fetchData();
+        await api.delete(`/user/members/${id}`);
+        fetchData();
       } catch (err) {
         console.error("Gagal menghapus member:", err);
       }
@@ -318,7 +320,6 @@ export default function MembersPage() {
                   </label>
                   <input
                     type="password"
-                    maxLength={6}
                     value={formData.pin}
                     onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
                     className="w-full bg-[#111722] border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-blue-500 font-mono"

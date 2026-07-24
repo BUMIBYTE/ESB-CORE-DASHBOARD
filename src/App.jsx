@@ -20,6 +20,8 @@ import SettingsScreen from "./pages/main/SettingsScreen";
 // import Routing from "./pages/admin/Routing";
 import Account from "./pages/admin/Account";
 import MemberScreen from "./pages/main/MemberScreen";
+import FirewallSecurity from "./pages/main/SecurityScreen";
+import LicenseManagement from "./pages/main/LicenseScreen";
 // import MultiTenantApp from "./pages/primacom/HomePrimacom";
 
 function App() {
@@ -43,6 +45,8 @@ function App() {
         <Route path="canvas" element={<Canvas />} />
         <Route path="routing" element={<Routing />} /> */}
         <Route path="settings/members" element={<MemberScreen />} />
+        <Route path="settings/security" element={<FirewallSecurity />} />
+        <Route path="settings/license" element={<LicenseManagement />} />
 
         <Route path="dashboard" element={<DashboardPrimacom />} />
         <Route path="traffic" element={<TrafficScreen />} />

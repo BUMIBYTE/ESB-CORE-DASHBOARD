@@ -24,12 +24,14 @@ const SETTINGS_ITEMS = [
     title: "Security",
     description: "SSO, session policies, IP allowlist",
     icon: Shield,
+    site: "/settings/security", // Tambahkan properti site untuk navigasi
   },
   {
-    id: "api-keys",
-    title: "API keys",
-    description: "Issue and rotate platform tokens",
+    id: "license-keys",
+    title: "Lisensi Management",
+    description: "Manage your license keys and subscriptions",
     icon: KeyRound,
+    site: "/settings/license", // Tambahkan properti site untuk navigasi
   },
   {
     id: "members",
@@ -38,18 +40,18 @@ const SETTINGS_ITEMS = [
     icon: Users,
     site: "/settings/members", // Tambahkan properti site untuk navigasi
   },
-  {
-    id: "notifications",
-    title: "Notifications",
-    description: "Email, Slack, PagerDuty, Webhook routing",
-    icon: Bell,
-  },
-  {
-    id: "billing",
-    title: "Billing",
-    description: "Plan, invoices, tenant quotas",
-    icon: CreditCard,
-  },
+  // {
+  //   id: "notifications",
+  //   title: "Notifications",
+  //   description: "Email, Slack, PagerDuty, Webhook routing",
+  //   icon: Bell,
+  // },
+  // {
+  //   id: "billing",
+  //   title: "Billing",
+  //   description: "Plan, invoices, tenant quotas",
+  //   icon: CreditCard,
+  // },
 ];
 
 export default function SettingsPage() {

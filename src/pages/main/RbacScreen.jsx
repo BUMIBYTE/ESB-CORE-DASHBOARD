@@ -28,7 +28,7 @@ const PERMISSION_TREE = [
     actions: ["add", "edit", "delete", "deploy", "test", "builder", "history"],
   },
   { id: "apps", label: "Apps & Connections", actions: ["add", "edit", "delete"] },
-  { id: "settings", label: "Settings" },
+  { id: "settings", label: "Settings", actions: ["general","api","billing","security","members"] },
   { id: "tenant", label: "Tenant Management", actions: ["add", "edit", "delete"] },
   { id: "rbac", label: "RBAC & Audit", actions: ["add", "edit", "delete"] },
 ];
