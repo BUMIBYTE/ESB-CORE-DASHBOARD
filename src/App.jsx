@@ -18,7 +18,8 @@ import SettingsScreen from "./pages/main/SettingsScreen";
 // import Dashboard from "./pages/admin/Dashboard";
 // import Canvas from "./pages/admin/Canvas";
 // import Routing from "./pages/admin/Routing";
-// import Account from "./pages/admin/Account";
+import Account from "./pages/admin/Account";
+import MemberScreen from "./pages/main/MemberScreen";
 // import MultiTenantApp from "./pages/primacom/HomePrimacom";
 
 function App() {
@@ -40,8 +41,8 @@ function App() {
       >
         {/* <Route path="dashboard" element={<Dashboard />} />
         <Route path="canvas" element={<Canvas />} />
-        <Route path="routing" element={<Routing />} />
-        <Route path="account" element={<Account />} /> */}
+        <Route path="routing" element={<Routing />} /> */}
+        <Route path="settings/members" element={<MemberScreen />} />
 
         <Route path="dashboard" element={<DashboardPrimacom />} />
         <Route path="traffic" element={<TrafficScreen />} />

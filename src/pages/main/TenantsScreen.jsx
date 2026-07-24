@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Users,
   Plus,
@@ -11,28 +11,7 @@ import {
   Sparkles,
   ChevronDown
 } from "lucide-react";
-
-// --- DUMMY INITIAL DATA ---
-const INITIAL_TENANTS = [
-  {
-    id: "1",
-    name: "Prima Group",
-    code: "PR",
-    slug: "prima-group",
-    isSuperAdmin: true,
-    isActive: true,
-    description: "Holding / super-admin — every tenant",
-    plan: "ENTERPRISE",
-    env: "Prod",
-    region: "ap-southeast-3 (Jakarta)",
-    users: 12,
-    routes: 8,
-    instances: 4,
-    conns: 8,
-    throughput: "2,694/s",
-    accent: "Accent", // Primary Blue
-  },
-];
+import api from "../../api/axios";
 
 const DEFAULT_FORM_STATE = {
   id: null,
@@ -49,7 +28,7 @@ const DEFAULT_FORM_STATE = {
 
 export default function TenantsPage() {
   // --- STATES ---
-  const [tenants, setTenants] = useState(INITIAL_TENANTS);
+  const [tenants, setTenants] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create"); // 'create' | 'edit'
   const [formData, setFormData] = useState(DEFAULT_FORM_STATE);
@@ -84,7 +63,7 @@ export default function TenantsPage() {
   };
 
   // --- SAVE / SUBMIT TENANT ---
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name || !formData.code) {
@@ -92,55 +71,36 @@ export default function TenantsPage() {
       return;
     }
 
+    const newTenant = {
+      name: formData.name,
+      code: formData.code.toUpperCase().slice(0, 2),
+      slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
+      isSuperAdmin: false,
+      isActive: false,
+      description: formData.description,
+      plan: formData.plan.toUpperCase(),
+      env: formData.env,
+      region: formData.region,
+      users: Number(formData.users) || 1,
+      accent: formData.accent,
+    };
     if (modalMode === "create") {
-      const newTenant = {
-        id: Date.now().toString(),
-        name: formData.name,
-        code: formData.code.toUpperCase().slice(0, 2),
-        slug: formData.name.toLowerCase().replace(/\s+/g, "-"),
-        isSuperAdmin: false,
-        isActive: false,
-        description: formData.description,
-        plan: formData.plan.toUpperCase(),
-        env: formData.env,
-        region: formData.region,
-        users: Number(formData.users) || 1,
-        routes: 0,
-        instances: 0,
-        conns: 0,
-        throughput: "—",
-        accent: formData.accent,
-      };
-
-      setTenants((prev) => [...prev, newTenant]);
+      await api.post(`/tenant`, newTenant, { headers: { 'Content-Type': 'application/json' } });
+      fetchTenants(); // Refresh the tenants list after creation
     } else {
       // Edit Mode
-      setTenants((prev) =>
-        prev.map((item) =>
-          item.id === formData.id
-            ? {
-                ...item,
-                name: formData.name,
-                code: formData.code.toUpperCase().slice(0, 2),
-                description: formData.description,
-                plan: formData.plan.toUpperCase(),
-                env: formData.env,
-                region: formData.region,
-                users: Number(formData.users),
-                accent: formData.accent,
-              }
-            : item
-        )
-      );
+      await api.put(`/tenant/${formData.id}`, newTenant, { headers: { 'Content-Type': 'application/json' } });
+      fetchTenants(); // Refresh the tenants list after update
     }
 
     handleCloseModal();
   };
 
   // --- DELETE TENANT ---
-  const handleDeleteTenant = (id) => {
+  const handleDeleteTenant = async (id) => {
     if (window.confirm("Are you sure you want to delete this tenant?")) {
-      setTenants((prev) => prev.filter((item) => item.id !== id));
+      await api.delete(`/tenant/${id}`);
+      fetchTenants(); // Refresh the tenants list after deletion
     }
   };
 
@@ -157,6 +117,19 @@ export default function TenantsPage() {
         return "bg-blue-950/80 border-blue-500/40 text-blue-300";
     }
   };
+
+  const fetchTenants = async () => {
+    try {
+      const response = await api.get('/tenant');
+      setTenants(response.data.data);
+    } catch (error) {
+      console.error("Error fetching tenants:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchTenants();
+  }, []);
 
   // Total Metrics Calculation
   const totalUsers = tenants.reduce((acc, curr) => acc + curr.users, 0);
@@ -278,13 +251,12 @@ export default function TenantsPage() {
                 {/* PLAN */}
                 <td className="py-3.5 px-4 font-mono">
                   <span
-                    className={`px-2 py-0.5 rounded border text-[10px] font-semibold tracking-wide ${
-                      item.plan === "ENTERPRISE"
-                        ? "bg-slate-900 border-slate-700 text-purple-300"
-                        : item.plan === "PRO"
+                    className={`px-2 py-0.5 rounded border text-[10px] font-semibold tracking-wide ${item.plan === "ENTERPRISE"
+                      ? "bg-slate-900 border-slate-700 text-purple-300"
+                      : item.plan === "PRO"
                         ? "bg-slate-900 border-slate-700 text-blue-300"
                         : "bg-slate-900 border-slate-700 text-slate-400"
-                    }`}
+                      }`}
                   >
                     {item.plan}
                   </span>
@@ -293,11 +265,10 @@ export default function TenantsPage() {
                 {/* ENV */}
                 <td className="py-3.5 px-4 font-mono">
                   <span
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border tracking-wider uppercase ${
-                      item.env?.toUpperCase() === "PROD"
-                        ? "bg-emerald-950/40 border-emerald-800/40 text-emerald-400"
-                        : "bg-amber-950/40 border-amber-800/40 text-amber-400"
-                    }`}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border tracking-wider uppercase ${item.env?.toUpperCase() === "PROD"
+                      ? "bg-emerald-950/40 border-emerald-800/40 text-emerald-400"
+                      : "bg-amber-950/40 border-amber-800/40 text-amber-400"
+                      }`}
                   >
                     {item.env}
                   </span>
@@ -313,9 +284,9 @@ export default function TenantsPage() {
                 {/* ACTIONS */}
                 <td className="py-3.5 px-4 text-right">
                   <div className="flex items-center justify-end gap-2 text-slate-500">
-                    <button className="p-1 hover:text-slate-300 transition-colors">
+                    {/* <button className="p-1 hover:text-slate-300 transition-colors">
                       <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    </button> */}
                     <button
                       onClick={() => handleOpenEditModal(item)}
                       className="p-1 hover:text-blue-400 transition-colors"
@@ -427,11 +398,10 @@ export default function TenantsPage() {
                         type="button"
                         key={envOpt}
                         onClick={() => setFormData({ ...formData, env: envOpt })}
-                        className={`flex-1 py-1 text-[11px] font-medium rounded-md transition-all ${
-                          formData.env === envOpt
-                            ? "bg-[#1c2638] text-white border border-slate-700/80 shadow-xs"
-                            : "text-slate-400 hover:text-slate-200"
-                        }`}
+                        className={`flex-1 py-1 text-[11px] font-medium rounded-md transition-all ${formData.env === envOpt
+                          ? "bg-[#1c2638] text-white border border-slate-700/80 shadow-xs"
+                          : "text-slate-400 hover:text-slate-200"
+                          }`}
                       >
                         {envOpt}
                       </button>
@@ -486,11 +456,10 @@ export default function TenantsPage() {
                         type="button"
                         key={color.name}
                         onClick={() => setFormData({ ...formData, accent: color.name })}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                          isSelected
-                            ? "bg-[#162030] border-slate-500 text-white"
-                            : "bg-[#111722] border-slate-800 text-slate-400 hover:text-slate-200"
-                        }`}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${isSelected
+                          ? "bg-[#162030] border-slate-500 text-white"
+                          : "bg-[#111722] border-slate-800 text-slate-400 hover:text-slate-200"
+                          }`}
                       >
                         <span className={`w-2.5 h-2.5 rounded-full ${color.bg}`} />
                         <span>{color.name}</span>

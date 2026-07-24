@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Shield,
   Plus,
@@ -13,6 +13,7 @@ import {
   CheckSquare,
   Square
 } from "lucide-react";
+import api from "../../api/axios";
 
 // --- STRUCTURE TREE PERMISSION (DITAMBAHKAN DELETE) ---
 const PERMISSION_TREE = [
@@ -90,7 +91,7 @@ const INITIAL_AUDIT_LOGS = [
 ];
 
 export default function RbacAuditPage() {
-  const [roles, setRoles] = useState(INITIAL_ROLES);
+  const [roles, setRoles] = useState([]);
   const [auditLogs] = useState(INITIAL_AUDIT_LOGS);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -184,7 +185,7 @@ export default function RbacAuditPage() {
     setIsModalOpen(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!roleName) {
       alert("Role Name wajib diisi!");
@@ -193,35 +194,43 @@ export default function RbacAuditPage() {
 
     if (modalMode === "create") {
       const newRole = {
-        id: Date.now().toString(),
         name: roleName,
         permissions: selectedPermissions,
         usersCount: Number(usersCount) || 0,
       };
-      setRoles((prev) => [...prev, newRole]);
+      await api.post('/rbac', newRole);
+      fetchRole(); // Refresh the roles list after creation
     } else {
-      setRoles((prev) =>
-        prev.map((role) =>
-          role.id === selectedRoleId
-            ? {
-                ...role,
-                name: roleName,
-                permissions: selectedPermissions,
-                usersCount: Number(usersCount),
-              }
-            : role
-        )
-      );
+      await api.put(`/rbac/${selectedRoleId}`, {
+        name: roleName,
+        permissions: selectedPermissions,
+        usersCount: Number(usersCount) || 0,
+      });
+      fetchRole(); // Refresh the roles list after update
     }
 
     handleCloseModal();
   };
 
-  const handleDeleteRole = (id) => {
+  const handleDeleteRole = async (id) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus role ini?")) {
-      setRoles((prev) => prev.filter((r) => r.id !== id));
+      await api.delete(`/rbac/${id}`);
+      fetchRole(); // Refresh the roles list after deletion
     }
   };
+
+  const fetchRole = async () => {
+    try {
+      const response = await api.get('/rbac');
+      setRoles(response.data.data);
+    } catch (error) {
+      console.error("Error fetching rbac:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRole();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#06090e] text-slate-300 p-8 font-sans select-none relative">

@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Data dummy sesuai dengan teks pada gambar
 const SETTINGS_ITEMS = [
@@ -35,6 +36,7 @@ const SETTINGS_ITEMS = [
     title: "Members",
     description: "Invite, manage and offboard team members",
     icon: Users,
+    site: "/settings/members", // Tambahkan properti site untuk navigasi
   },
   {
     id: "notifications",
@@ -68,7 +70,8 @@ export default function SettingsPage() {
         {SETTINGS_ITEMS.map((item) => {
           const IconComponent = item.icon;
           return (
-            <div
+            <Link
+              to={item.site}
               key={item.id}
               className="bg-[#0e1420] border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-5 flex items-center justify-between group cursor-pointer transition-all"
             >
@@ -91,7 +94,7 @@ export default function SettingsPage() {
 
               {/* Right Arrow */}
               <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all shrink-0 ml-4" />
-            </div>
+            </Link>
           );
         })}
       </div>
