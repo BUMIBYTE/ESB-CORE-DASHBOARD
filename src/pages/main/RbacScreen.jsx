@@ -28,57 +28,9 @@ const PERMISSION_TREE = [
     actions: ["add", "edit", "delete", "deploy", "test", "builder", "history"],
   },
   { id: "apps", label: "Apps & Connections", actions: ["add", "edit", "delete"] },
-  { id: "settings", label: "Settings", actions: ["general","api","billing","security","members"] },
+  { id: "settings", label: "Settings", actions: ["general", "api", "billing", "security", "members"] },
   { id: "tenant", label: "Tenant Management", actions: ["add", "edit", "delete"] },
   { id: "rbac", label: "RBAC & Audit", actions: ["add", "edit", "delete"] },
-];
-
-const INITIAL_ROLES = [
-  {
-    id: "1",
-    name: "Platform Admin",
-    permissions: {
-      dashboard: { read: true },
-      traffic: { read: true },
-      sites: { read: true, add: true, edit: true, delete: true },
-      camel: { read: true, add: true, edit: true, delete: true },
-      kafka: { read: true, add: true, edit: true, delete: true },
-      routes: { read: true, add: true, edit: true, delete: true, deploy: true, test: true, builder: true, history: true },
-      apps: { read: true, add: true, edit: true, delete: true },
-      settings: { read: true },
-      tenant: { read: true, add: true, edit: true, delete: true },
-      rbac: { read: true, add: true, edit: true, delete: true },
-    },
-    usersCount: 4,
-  },
-  {
-    id: "2",
-    name: "Route Owner",
-    permissions: {
-      dashboard: { read: true },
-      routes: { read: true, add: true, edit: true, delete: true, deploy: true, builder: true },
-      apps: { read: true, add: true, edit: true },
-    },
-    usersCount: 12,
-  },
-  {
-    id: "3",
-    name: "Operator",
-    permissions: {
-      dashboard: { read: true },
-      traffic: { read: true },
-      routes: { read: true, test: true, history: true },
-    },
-    usersCount: 18,
-  },
-  {
-    id: "4",
-    name: "Auditor",
-    permissions: {
-      rbac: { read: true },
-    },
-    usersCount: 6,
-  },
 ];
 
 const INITIAL_AUDIT_LOGS = [
@@ -92,14 +44,14 @@ const INITIAL_AUDIT_LOGS = [
 
 export default function RbacAuditPage() {
   const [roles, setRoles] = useState([]);
-  const [auditLogs] = useState(INITIAL_AUDIT_LOGS);
+  const [auditLogs, setAuditLogs] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create");
   const [roleName, setRoleName] = useState("");
   const [usersCount, setUsersCount] = useState(0);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
-  
+
   const [selectedPermissions, setSelectedPermissions] = useState({});
 
   // --- HANDLERS BULK CHECK / UNCHECK ALL ---
@@ -228,8 +180,22 @@ export default function RbacAuditPage() {
     }
   };
 
+  const fetchAuditLogs = async () => {
+    try {
+      const response = await api.get('/logs/logs');
+      const sortedData = [...response.data.data].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      setAuditLogs(sortedData);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+    }
+  };
+
   useEffect(() => {
     fetchRole();
+    fetchAuditLogs();
   }, []);
 
   return (
@@ -334,10 +300,19 @@ export default function RbacAuditPage() {
                 key={log.id}
                 className="py-3 flex items-center justify-between gap-4 hover:bg-[#101622]/40 px-2 rounded-lg transition-colors"
               >
-                <span className="text-slate-500 text-[11px] w-16 shrink-0">{log.time}</span>
-                <span className={`w-20 font-semibold text-[11px] shrink-0 ${log.actionColor}`}>{log.action}</span>
-                <span className="text-slate-400 text-[11px] w-32 shrink-0 truncate">{log.user}</span>
-                <span className="text-slate-300 text-[11px] truncate flex-1 text-right">{log.target}</span>
+                <span className="text-slate-500 text-[11px] w-16 shrink-0">
+                  {new Date(log.createdAt).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'short', // Pakai 'long' jika ingin "Juli" secara lengkap
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
+                </span>
+                <span className={`w-20 font-semibold text-[11px] shrink-0 ${log.actionColor}`}>{log.status}</span>
+                <span className="text-slate-400 text-[11px] w-32 shrink-0 truncate">{log.userId}</span>
+                <span className="text-slate-300 text-[11px] truncate flex-1 text-right">{log.desc}</span>
               </div>
             ))}
           </div>
@@ -350,7 +325,7 @@ export default function RbacAuditPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-[#0b1017] border border-slate-800/90 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            
+
             {/* MODAL HEADER */}
             <div className="p-5 flex items-start justify-between border-b border-slate-800/80 shrink-0">
               <div className="flex items-center gap-3">
@@ -373,7 +348,7 @@ export default function RbacAuditPage() {
 
             {/* MODAL FORM BODY */}
             <form onSubmit={handleSubmit} className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1">
-              
+
               {/* Role Name & Users Count */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-1">
@@ -443,11 +418,10 @@ export default function RbacAuditPage() {
                           <label className="flex items-center gap-2.5 cursor-pointer">
                             <div
                               onClick={() => handleParentToggle(item.id)}
-                              className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-                                isParentChecked
-                                  ? "bg-blue-600 border-blue-500 text-white"
-                                  : "border-slate-700 bg-[#121824] hover:border-slate-500"
-                              }`}
+                              className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isParentChecked
+                                ? "bg-blue-600 border-blue-500 text-white"
+                                : "border-slate-700 bg-[#121824] hover:border-slate-500"
+                                }`}
                             >
                               {isParentChecked && <Check className="w-3 h-3 stroke-[3]" />}
                             </div>
@@ -474,21 +448,19 @@ export default function RbacAuditPage() {
                                 <label
                                   key={act}
                                   onClick={() => handleActionToggle(item.id, act)}
-                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-mono cursor-pointer transition-all ${
-                                    isChildChecked
-                                      ? isDeleteAction
-                                        ? "bg-rose-950/60 border-rose-500/60 text-rose-300"
-                                        : "bg-blue-950/60 border-blue-500/60 text-blue-300"
-                                      : "bg-[#121824] border-slate-800 text-slate-500 hover:text-slate-300"
-                                  }`}
+                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-mono cursor-pointer transition-all ${isChildChecked
+                                    ? isDeleteAction
+                                      ? "bg-rose-950/60 border-rose-500/60 text-rose-300"
+                                      : "bg-blue-950/60 border-blue-500/60 text-blue-300"
+                                    : "bg-[#121824] border-slate-800 text-slate-500 hover:text-slate-300"
+                                    }`}
                                 >
-                                  <div className={`w-3 h-3 rounded-[3px] border flex items-center justify-center ${
-                                    isChildChecked
-                                      ? isDeleteAction
-                                        ? "bg-rose-600 border-rose-400 text-white"
-                                        : "bg-blue-500 border-blue-400 text-white"
-                                      : "border-slate-700"
-                                  }`}>
+                                  <div className={`w-3 h-3 rounded-[3px] border flex items-center justify-center ${isChildChecked
+                                    ? isDeleteAction
+                                      ? "bg-rose-600 border-rose-400 text-white"
+                                      : "bg-blue-500 border-blue-400 text-white"
+                                    : "border-slate-700"
+                                    }`}>
                                     {isChildChecked && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                                   </div>
                                   <span>{act}</span>
