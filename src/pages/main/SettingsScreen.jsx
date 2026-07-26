@@ -13,19 +13,12 @@ import { Link } from "react-router-dom";
 
 // Data dummy sesuai dengan teks pada gambar
 const SETTINGS_ITEMS = [
-  {
-    id: "general",
-    title: "General",
-    description: "Display name, region, default timezone",
-    icon: GeneralIcon,
-  },
-  {
-    id: "security",
-    title: "Security",
-    description: "SSO, session policies, IP allowlist",
-    icon: Shield,
-    site: "/settings/security", // Tambahkan properti site untuk navigasi
-  },
+  // {
+  //   id: "general",
+  //   title: "General",
+  //   description: "Display name, region, default timezone",
+  //   icon: GeneralIcon,
+  // },
   {
     id: "license-keys",
     title: "Lisensi Management",
@@ -39,6 +32,13 @@ const SETTINGS_ITEMS = [
     description: "Invite, manage and offboard team members",
     icon: Users,
     site: "/settings/members", // Tambahkan properti site untuk navigasi
+  },
+  {
+    id: "security",
+    title: "Security",
+    description: "SSO, session policies, IP allowlist",
+    icon: Shield,
+    site: "/settings/security", // Tambahkan properti site untuk navigasi
   },
   // {
   //   id: "notifications",
