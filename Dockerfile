@@ -1,24 +1,18 @@
-# Build React
-FROM node:20 AS build
+# 1. Pilih base image
+FROM node:20-alpine
 
+# 2. Tentukan direktori kerja di dalam kontainer
 WORKDIR /app
 
+# 3. Salin berkas konfigurasi dependensi & install
 COPY package*.json ./
-
 RUN npm install
 
+# 4. Salin seluruh sisa kode aplikasi
 COPY . .
 
-RUN npm run build
-
-
-# Serve with Nginx
-FROM nginx:alpine
-
-COPY --from=build /app/dist /usr/share/nginx/html
-
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
+# 5. Tentukan port yang dibuka (opsional/dokumentasi)
 EXPOSE 5000
 
-CMD ["nginx", "-g", "daemon off;"]
+# 6. Perintah untuk menjalankan aplikasi
+CMD ["npm", "start"]
