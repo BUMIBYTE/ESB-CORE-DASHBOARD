@@ -15,9 +15,10 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
-  Code2
+  Code2,
 } from "lucide-react";
-import api from "../api/axios"; // Import API module kamu
+import api from "../api/axios";
+import { useTenant } from "../context/TenantContext"; // Import Custom Hook Context
 
 function Sidebar() {
   const location = useLocation();
@@ -27,8 +28,8 @@ function Sidebar() {
 
   const dropdownRef = useRef(null);
 
-  // State untuk Workspace/Tenant yang dipilih
-  const [selectedWorkspace, setSelectedWorkspace] = useState(null);
+  // Menggunakan state tenant global dari Context
+  const { selectedTenant, changeTenant } = useTenant();
 
   // Grouped Menu Items dengan mapping key permission API
   const menuGroups = [
@@ -67,12 +68,20 @@ function Sidebar() {
       const resData = res.data.data;
       setUserData(resData);
 
-      // Set default selected workspace dari tenant index ke-0 jika ada
-      if (resData?.tenant && resData.tenant.length > 0) {
-        setSelectedWorkspace(resData.tenant[0]);
+      const tenants = resData?.tenant || [];
+      
+      // Jika belum ada tenant yang dipilih di state/localStorage, tentukan default dari index 0
+      if (tenants.length > 0 && !selectedTenant) {
+        changeTenant(tenants[0]);
+      } else if (selectedTenant && tenants.length > 0) {
+        // Sinkronkan data jika tenant aktif masih ada dalam list
+        const exists = tenants.find((t) => t.id === selectedTenant.id);
+        if (!exists) {
+          changeTenant(tenants[0]);
+        }
       }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching session data:", error);
     }
   };
 
@@ -95,7 +104,7 @@ function Sidebar() {
     tenant.code.toLowerCase().includes(searchWorkspace.toLowerCase())
   );
 
-  // Penanganan 'permisson' (sesuai typo kunci dari JSON response backend)
+  // Penanganan key typo 'permisson' dari backend
   const permissions = userData?.permisson || userData?.permission || {};
 
   return (
@@ -113,8 +122,8 @@ function Sidebar() {
         <Code2 className="w-4 h-4 text-slate-500 hover:text-slate-300 cursor-pointer transition-colors" />
       </div>
 
-      {/* 2. WORKSPACE SWITCHER (Tampil jika tenant tersedia) */}
-      {tenantsList.length > 0 && selectedWorkspace && (
+      {/* 2. WORKSPACE SWITCHER */}
+      {tenantsList.length > 0 && selectedTenant && (
         <div className="p-3 relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -124,14 +133,14 @@ function Sidebar() {
           >
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="w-7 h-7 rounded-lg bg-purple-950/80 border border-purple-500/30 text-purple-300 flex items-center justify-center font-bold text-xs shrink-0">
-                {selectedWorkspace.code}
+                {selectedTenant.code}
               </div>
               <div className="flex flex-col text-left overflow-hidden">
                 <span className="text-slate-200 text-xs font-medium truncate">
-                  {selectedWorkspace.name}
+                  {selectedTenant.name}
                 </span>
                 <span className="text-[10px] text-slate-500 truncate">
-                  {selectedWorkspace.env} - {selectedWorkspace.region}
+                  {selectedTenant.env} - {selectedTenant.region}
                 </span>
               </div>
             </div>
@@ -162,14 +171,14 @@ function Sidebar() {
               {/* List Tenant */}
               <div className="max-h-60 overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
                 {filteredWorkspaces.map((ws) => {
-                  const isSelected = selectedWorkspace.id === ws.id;
+                  const isSelected = selectedTenant.id === ws.id;
                   const isDev = ws.env?.toLowerCase() === "dev";
 
                   return (
                     <button
                       key={ws.id}
                       onClick={() => {
-                        setSelectedWorkspace(ws);
+                        changeTenant(ws); // Mengubah tenant secara global
                         setIsDropdownOpen(false);
                       }}
                       className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors ${
@@ -217,15 +226,13 @@ function Sidebar() {
         </div>
       )}
 
-      {/* 3. NAVIGATION MENU (FILTER BERDASARKAN PERMISSION READ) */}
+      {/* 3. NAVIGATION MENU */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-6 custom-scrollbar">
         {menuGroups.map((group, groupIdx) => {
-          // Filter item di dalam group yang memiliki permission.read === true
           const allowedItems = group.items.filter(
             (item) => permissions[item.permissionKey]?.read === true
           );
 
-          // Jika tidak ada item yang boleh dibaca pada group ini, sembunyikan group title-nya
           if (allowedItems.length === 0) return null;
 
           return (
