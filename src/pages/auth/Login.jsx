@@ -51,8 +51,6 @@ const Login = () => {
         pin: pin,
       });
 
-      console.log("LOGIN RESPONSE:", res.data);
-
       if (res.data.code === 200) {
         // 🔥 simpan token
         localStorage.setItem("accessToken", res.data.accessToken);

@@ -72,6 +72,11 @@ export default function SitesPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [isAddAppModalOpen, setIsAddAppModalOpen] = useState(false);
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+
+  const toggleTerminal = () => {
+    setIsTerminalOpen((prev) => !prev);
+  };
 
   // Connection status tiap site (keyed by site id)
   // shape per entry: { status: 'checking' | 'connected' | 'disconnected', message: string, lastChecked: Date }
@@ -82,7 +87,6 @@ export default function SitesPage() {
     setLoading(true);
     try {
       const response = await api.get(`/site/${tenantId || ''}`);
-      console.log("Fetched sites:", response.data.data);
       setSites(response.data.data);
     } catch (error) {
       console.error("Gagal mengambil data site:", error);
@@ -438,33 +442,46 @@ export default function SitesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span
-                    className={`w-2 h-2 rounded-full ${
-                      connStatus[site?.id]?.status === "connected"
+                    className={`w-2 h-2 rounded-full ${connStatus[site?.id]?.status === "connected"
                         ? "bg-emerald-500 animate-pulse"
                         : connStatus[site?.id]?.status === "disconnected"
-                        ? "bg-rose-500"
-                        : "bg-amber-500 animate-pulse"
-                    }`}
+                          ? "bg-rose-500"
+                          : "bg-amber-500 animate-pulse"
+                      }`}
                   />
                   <span
-                    className={`text-[10px] font-mono ${
-                      connStatus[site?.id]?.status === "connected"
+                    className={`text-[10px] font-mono ${connStatus[site?.id]?.status === "connected"
                         ? "text-emerald-400"
                         : connStatus[site?.id]?.status === "disconnected"
-                        ? "text-rose-400"
-                        : "text-amber-400"
-                    }`}
+                          ? "text-rose-400"
+                          : "text-amber-400"
+                      }`}
                   >
                     {connStatus[site?.id]?.status === "connected"
                       ? "Connected"
                       : connStatus[site?.id]?.status === "disconnected"
-                      ? "Disconnected"
-                      : "Checking..."}
+                        ? "Disconnected"
+                        : "Checking..."}
                   </span>
                 </div>
+              {/* --- TOMBOL BUKA / TUTUP TERMINAL --- */}
+              <button
+                onClick={toggleTerminal}
+                className={`px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2 ${isTerminalOpen
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  }`}
+              >
+                {/* Icon Terminal Sederhana */}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {isTerminalOpen ? 'Tutup Terminal' : 'Buka Terminal SSH'}
+              </button>
               </div>
-
-              <LiveTerminal siteId={site} connStatus={connStatus[site?.id]} />
+              {isTerminalOpen && (
+                <LiveTerminal siteId={site} connStatus={connStatus[site?.id]} />
+              )}
             </div>
           </div>
         </>
@@ -571,11 +588,10 @@ export default function SitesPage() {
                         key={method.id}
                         type="button"
                         onClick={() => setFormData({ ...formData, authMethod: method.id })}
-                        className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border text-[11px] font-medium transition-all cursor-pointer ${
-                          isSelected
+                        className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border text-[11px] font-medium transition-all cursor-pointer ${isSelected
                             ? "bg-blue-950/60 border-blue-500 text-blue-300 shadow-sm"
                             : "bg-[#111722] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
-                        }`}
+                          }`}
                       >
                         <IconComp className="w-3.5 h-3.5" />
                         <span>{method.label}</span>
@@ -796,11 +812,10 @@ function Topology({ sites, picked, onPick }) {
             <div
               key={s.id}
               onClick={() => onPick(s.id)}
-              className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                picked === s.id
+              className={`p-3.5 rounded-xl border transition-all cursor-pointer ${picked === s.id
                   ? "bg-blue-950/40 border-blue-500/80 shadow-lg shadow-blue-500/10"
                   : "bg-[#0e1420] border-slate-800 hover:border-slate-700"
-              }`}
+                }`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-white">{s.name}</span>
@@ -824,11 +839,10 @@ function Topology({ sites, picked, onPick }) {
             <div
               key={s.id}
               onClick={() => onPick(s.id)}
-              className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                picked === s.id
+              className={`p-3.5 rounded-xl border transition-all cursor-pointer ${picked === s.id
                   ? "bg-blue-950/40 border-blue-500/80 shadow-lg shadow-blue-500/10"
                   : "bg-[#0e1420] border-slate-800 hover:border-slate-700"
-              }`}
+                }`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-white">{s.name}</span>

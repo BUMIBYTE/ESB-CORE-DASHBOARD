@@ -96,7 +96,6 @@ const Account = () => {
         statusCode: statusRes.data.status || "Deactive",
         licenseKey: statusRes.data.licenseKey || "N/A"
       });
-      console.log("Status License:", statusRes.data);
 
     } catch (err) {
       console.error("Gagal mengambil data firewall:", err);

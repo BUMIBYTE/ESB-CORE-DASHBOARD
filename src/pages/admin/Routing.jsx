@@ -72,7 +72,6 @@ const Routing = () => {
         folderQuota: statusRes.data.folderQuota || 0, // Default quota jika tidak ada data
         routeQuota: statusRes.data.routeQuota || 0, // Default quota jika tidak ada data
       });
-      console.log("Status License:", statusRes.data);
 
     } catch (err) {
       console.error("Gagal mengambil data firewall:", err);

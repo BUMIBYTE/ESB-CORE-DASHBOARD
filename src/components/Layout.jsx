@@ -12,7 +12,6 @@ function Layout() {
       setLicenseInfo({
         isValid: statusRes.data.isValid,
       });
-      console.log("Status License:", statusRes.data);
     } catch (err) {
       console.error("Gagal mengambil data lisensi:", err);
       setLicenseInfo({ isValid: false });
