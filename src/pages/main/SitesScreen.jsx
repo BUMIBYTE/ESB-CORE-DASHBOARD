@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useTenant } from "../../context/TenantContext";
 import api from "../../api/axios";
+import LiveTerminal from "./LiveTerminal";
 
 // Catalog aplikasi bawaan
 const AVAILABLE_APPS = [
@@ -42,10 +43,10 @@ const INITIAL_FORM_STATE = {
   id: "",
   tenantId: "",
   name: "",
-  kind: "On-Premises",
+  kind: 0,
   endpoint: "",
   desc: "",
-  authMethod: "ssh_key",
+  authMethod: "BasicAuth",
   sshUser: "root",
   sshPort: "22",
   privateKey: "",
@@ -54,9 +55,12 @@ const INITIAL_FORM_STATE = {
   apiKey: ""
 };
 
+// Interval polling status koneksi site yang sedang difokuskan
+const CONNECTION_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 menit
+
 export default function SitesPage() {
   const { tenantId } = useTenant();
-  
+
   const [sites, setSites] = useState([]);
   const [picked, setPicked] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -69,11 +73,16 @@ export default function SitesPage() {
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [isAddAppModalOpen, setIsAddAppModalOpen] = useState(false);
 
+  // Connection status tiap site (keyed by site id)
+  // shape per entry: { status: 'checking' | 'connected' | 'disconnected', message: string, lastChecked: Date }
+  const [connStatus, setConnStatus] = useState({});
+
   // --- FETCH SITES (READ) ---
   const fetchSites = async () => {
     setLoading(true);
     try {
       const response = await api.get(`/site/${tenantId || ''}`);
+      console.log("Fetched sites:", response.data.data);
       setSites(response.data.data);
     } catch (error) {
       console.error("Gagal mengambil data site:", error);
@@ -90,6 +99,54 @@ export default function SitesPage() {
   const spokeSites = useMemo(() => sites.filter(s => s.kind !== "Central Hub"), [sites]);
   const linksUp = spokeSites.filter(s => s.link !== "down").length;
   const totalRoutes = sites.reduce((a, s) => a + (s.routes || 0), 0);
+
+  // --- CHECK CONNECTION STATUS (SSH TEST) ---
+  const checkSiteConnection = async (siteId) => {
+    if (!siteId) return;
+
+    setConnStatus(prev => ({
+      ...prev,
+      [siteId]: { ...(prev[siteId] || {}), status: "checking" }
+    }));
+
+    try {
+      const response = await api.get(`/site/test-connection/${siteId}`);
+      const { success, message } = response.data;
+
+      setConnStatus(prev => ({
+        ...prev,
+        [siteId]: {
+          status: success ? "connected" : "disconnected",
+          message: message || (success ? "Koneksi berhasil" : "Koneksi gagal"),
+          lastChecked: new Date()
+        }
+      }));
+    } catch (error) {
+      console.error("Gagal test koneksi site:", error);
+      setConnStatus(prev => ({
+        ...prev,
+        [siteId]: {
+          status: "disconnected",
+          message: error?.response?.data?.message || "Gagal terhubung ke server.",
+          lastChecked: new Date()
+        }
+      }));
+    }
+  };
+
+  // Cek koneksi langsung saat site yang difokuskan berubah,
+  // lalu ulangi tiap 5 menit selama site tsb masih menjadi fokus.
+  useEffect(() => {
+    if (!site?.id) return;
+
+    checkSiteConnection(site.id);
+
+    const intervalId = setInterval(() => {
+      checkSiteConnection(site.id);
+    }, CONNECTION_CHECK_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [site?.id]);
 
   // --- HANDLERS FOR SITE MODAL ---
   const handleOpenAddModal = () => {
@@ -110,7 +167,7 @@ export default function SitesPage() {
       kind: targetSite.kind || "On-Premises",
       endpoint: targetSite.endpoint || "",
       desc: targetSite.desc || "",
-      authMethod: targetSite.authMethod || "ssh_key",
+      authMethod: targetSite.authMethod || "SshKey",
       sshUser: targetSite.sshUser || "root",
       sshPort: targetSite.sshPort || "22",
       privateKey: targetSite.privateKey || "",
@@ -147,13 +204,12 @@ export default function SitesPage() {
     };
 
     try {
-      let response;
       if (modalMode === "add") {
         // POST to /site
         await api.post("/site", payload);
       } else {
         // PUT to /site/:id
-        api.put(`/site/${formData.id}`, payload);
+        await api.put(`/site/${formData.id}`, payload);
       }
       await fetchSites();
       setIsModalOpen(false);
@@ -285,6 +341,8 @@ export default function SitesPage() {
                   s={site}
                   onEdit={() => handleOpenEditModal(site)}
                   onDelete={() => handleDeleteSite(site.id)}
+                  connStatus={connStatus[site.id]}
+                  onRecheck={() => checkSiteConnection(site.id)}
                 />
               )}
             </div>
@@ -379,12 +437,34 @@ export default function SitesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-mono text-emerald-400">Connected</span>
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      connStatus[site?.id]?.status === "connected"
+                        ? "bg-emerald-500 animate-pulse"
+                        : connStatus[site?.id]?.status === "disconnected"
+                        ? "bg-rose-500"
+                        : "bg-amber-500 animate-pulse"
+                    }`}
+                  />
+                  <span
+                    className={`text-[10px] font-mono ${
+                      connStatus[site?.id]?.status === "connected"
+                        ? "text-emerald-400"
+                        : connStatus[site?.id]?.status === "disconnected"
+                        ? "text-rose-400"
+                        : "text-amber-400"
+                    }`}
+                  >
+                    {connStatus[site?.id]?.status === "connected"
+                      ? "Connected"
+                      : connStatus[site?.id]?.status === "disconnected"
+                      ? "Disconnected"
+                      : "Checking..."}
+                  </span>
                 </div>
               </div>
 
-              <TerminalConsole site={site} />
+              <LiveTerminal siteId={site} connStatus={connStatus[site?.id]} />
             </div>
           </div>
         </>
@@ -437,10 +517,10 @@ export default function SitesPage() {
                     onChange={e => setFormData({ ...formData, kind: e.target.value })}
                     className="w-full bg-[#111722] border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                   >
-                    <option value="Central Hub">Central Hub (Utama/Kiri)</option>
-                    <option value="On-Premises">On-Premises (Cabang)</option>
-                    <option value="Cloud VPC">Cloud VPC (Cabang)</option>
-                    <option value="Edge Gateway">Edge Gateway (Cabang)</option>
+                    <option value={0}>Central Hub (Utama/Kiri)</option>
+                    <option value={1}>On-Premises (Cabang)</option>
+                    <option value={2}>Cloud VPC (Cabang)</option>
+                    <option value={3}>Edge Gateway (Cabang)</option>
                   </select>
                 </div>
               </div>
@@ -479,9 +559,9 @@ export default function SitesPage() {
 
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: "ssh_key", label: "SSH Key", icon: Key },
-                    { id: "basic_auth", label: "Password", icon: Lock },
-                    { id: "api_key", label: "API Token", icon: ShieldCheck }
+                    // { id: "SshKey", label: "SSH Key", icon: Key },
+                    { id: "BasicAuth", label: "Basic Authentication", icon: Lock },
+                    // { id: "ApiKey", label: "API Token", icon: ShieldCheck }
                   ].map(method => {
                     const IconComp = method.icon;
                     const isSelected = formData.authMethod === method.id;
@@ -518,7 +598,7 @@ export default function SitesPage() {
                   />
                 </div>
 
-                {formData.authMethod === "ssh_key" && (
+                {formData.authMethod === "SshKey" && (
                   <>
                     <div className="space-y-1">
                       <label className="text-[11px] font-medium text-slate-300">Private Key (RSA/Ed25519)</label>
@@ -543,7 +623,7 @@ export default function SitesPage() {
                   </>
                 )}
 
-                {formData.authMethod === "basic_auth" && (
+                {formData.authMethod === "BasicAuth" && (
                   <div className="space-y-1">
                     <label className="text-[11px] font-medium text-slate-300">Password</label>
                     <div className="relative">
@@ -565,7 +645,7 @@ export default function SitesPage() {
                   </div>
                 )}
 
-                {formData.authMethod === "api_key" && (
+                {formData.authMethod === "ApiKey" && (
                   <div className="space-y-1">
                     <label className="text-[11px] font-medium text-slate-300">API Gateway Bearer Token / Key</label>
                     <input
@@ -763,7 +843,31 @@ function Topology({ sites, picked, onPick }) {
   );
 }
 
-function SiteDetail({ s, onEdit, onDelete }) {
+function SiteDetail({ s, onEdit, onDelete, connStatus, onRecheck }) {
+  const status = connStatus?.status || "checking";
+
+  const badgeConfig = {
+    connected: {
+      label: "Connected",
+      dot: "bg-emerald-500",
+      text: "text-emerald-400",
+      bg: "bg-emerald-950/40 border-emerald-800/40"
+    },
+    disconnected: {
+      label: "Disconnected",
+      dot: "bg-rose-500",
+      text: "text-rose-400",
+      bg: "bg-rose-950/40 border-rose-800/40"
+    },
+    checking: {
+      label: "Checking...",
+      dot: "bg-amber-500 animate-pulse",
+      text: "text-amber-400",
+      bg: "bg-amber-950/40 border-amber-800/40"
+    }
+  };
+  const badge = badgeConfig[status] || badgeConfig.checking;
+
   return (
     <div className="bg-[#0b0f17] border border-slate-800/80 rounded-xl p-5 shadow-xl space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-slate-800/60">
@@ -781,14 +885,39 @@ function SiteDetail({ s, onEdit, onDelete }) {
         </div>
       </div>
 
-      <div className="space-y-2 text-xs">
-        <div className="flex justify-between py-1 border-b border-slate-800/30">
-          <span className="text-slate-500">Kind / Type:</span>
-          <span className="text-slate-200 font-medium">{s.kind || "On-Premises"}</span>
+      {/* STATUS KONEKSI SSH (auto-check tiap 5 menit) */}
+      <div className={`flex items-center justify-between p-2.5 rounded-lg border ${badge.bg}`}>
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${badge.dot}`} />
+          <span className={`text-[11px] font-mono font-medium ${badge.text}`}>{badge.label}</span>
         </div>
+        <div className="flex items-center gap-2">
+          {connStatus?.lastChecked && (
+            <span className="text-[10px] font-mono text-slate-500">
+              {connStatus.lastChecked.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onRecheck}
+            className="text-[10px] font-mono text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+          >
+            Recheck
+          </button>
+        </div>
+      </div>
+      {connStatus?.message && (
+        <p className="text-[10.5px] font-mono text-slate-500 -mt-2">{connStatus.message}</p>
+      )}
+
+      <div className="space-y-2 text-xs">
+        {/* <div className="flex justify-between py-1 border-b border-slate-800/30">
+          <span className="text-slate-500">Kind / Type:</span>
+          <span className="text-slate-200 font-medium">{s.kind === 0 ? "On-Premises" : "Cloud"}</span>
+        </div> */}
         <div className="flex justify-between py-1 border-b border-slate-800/30">
           <span className="text-slate-500">Auth Method:</span>
-          <span className="text-slate-200 font-mono">{s.authMethod || "ssh_key"}</span>
+          <span className="text-slate-200 font-mono">{s.authMethod || "SshKey"}</span>
         </div>
         <div className="flex justify-between py-1 border-b border-slate-800/30">
           <span className="text-slate-500">SSH Credentials:</span>
@@ -805,12 +934,31 @@ function SiteDetail({ s, onEdit, onDelete }) {
   );
 }
 
-function TerminalConsole({ site }) {
+function TerminalConsole({ site, connStatus }) {
+  const status = connStatus?.status || "checking";
+
   return (
     <div className="bg-[#05080e] border border-slate-800/90 rounded-lg p-3 font-mono text-[11px] text-emerald-400 h-[220px] overflow-y-auto space-y-1">
       <div>[system] Connecting to {site?.endpoint || "127.0.0.1"} via SSH...</div>
-      <div>[system] Authentication ({site?.authMethod || "ssh_key"}) succeeded.</div>
-      <div className="text-slate-400">Welcome to {site?.name || "Server"} node shell.</div>
+
+      {status === "checking" && (
+        <div className="text-amber-400">[system] Menunggu hasil test koneksi...</div>
+      )}
+
+      {status === "connected" && (
+        <>
+          <div>[system] Authentication ({site?.authMethod || "SshKey"}) succeeded.</div>
+          <div className="text-slate-400">{connStatus?.message || "Koneksi SSH Berhasil!"}</div>
+          <div className="text-slate-400">Welcome to {site?.name || "Server"} node shell.</div>
+        </>
+      )}
+
+      {status === "disconnected" && (
+        <div className="text-rose-400">
+          [system] Authentication failed: {connStatus?.message || "Tidak dapat terhubung ke server."}
+        </div>
+      )}
+
       <div className="text-slate-500">$ _</div>
     </div>
   );
