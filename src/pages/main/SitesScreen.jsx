@@ -26,17 +26,38 @@ import {
 import { useTenant } from "../../context/TenantContext";
 import api from "../../api/axios";
 import LiveTerminal from "./LiveTerminal";
+import RecommendedAppsSection from "./LiveRecommendedApps";
 
 // Catalog aplikasi bawaan
 const AVAILABLE_APPS = [
-  { id: "docker", name: "Docker Container Engine", version: "24.0.7", size: "385 MB", category: "Runtime" },
-  { id: "kafka", name: "Apache Kafka", version: "3.5.1", size: "120 MB", category: "Messaging" },
-  { id: "mongodb", name: "MongoDB Enterprise", version: "6.0.8", size: "450 MB", category: "Database" },
-  { id: "postgresql", name: "PostgreSQL DB", version: "15.3", size: "280 MB", category: "Database" },
-  { id: "redis", name: "Redis In-Memory Cache", version: "7.0.11", size: "45 MB", category: "Cache" },
-  { id: "camel", name: "Apache Camel Runtime", version: "4.2.0", size: "85 MB", category: "Integration" },
-  { id: "nginx", name: "Nginx Web Server", version: "1.24.0", size: "32 MB", category: "Web" },
-  { id: "rabbitmq", name: "RabbitMQ Message Broker", version: "3.12.0", size: "110 MB", category: "Messaging" }
+  {
+    "id": "docker",
+    "name": "Docker Engine",
+    "description": "Container runtime environment & Docker Compose",
+    "version": "24.0+",
+    "command": "curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker $USER"
+  },
+  {
+    "id": "java",
+    "name": "Java OpenJDK 17",
+    "description": "Java Development Kit (Required for Camel & Kafka)",
+    "version": "17 LTS",
+    "command": "sudo apt-get update && sudo apt-get install -y openjdk-17-jdk"
+  },
+  {
+    "id": "camel-jbang",
+    "name": "Camel JBang",
+    "description": "Apache Camel CLI integration engine",
+    "version": "4.x",
+    "command": "curl -s https://jbang.dev/install.sh | bash && source ~/.bashrc && jbang app install camel@apache/camel"
+  },
+  {
+    "id": "kafka",
+    "name": "Apache Kafka",
+    "description": "Enterprise event streaming platform (KRaft mode / No Zookeeper)",
+    "version": "3.7.0",
+    "command": "wget https://downloads.apache.org/kafka/3.7.0/kafka_2.13-3.7.0.tgz && tar -xzf kafka_2.13-3.7.0.tgz && mv kafka_2.13-3.7.0 /opt/kafka"
+  }
 ];
 
 const INITIAL_FORM_STATE = {
@@ -73,6 +94,14 @@ export default function SitesPage() {
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [isAddAppModalOpen, setIsAddAppModalOpen] = useState(false);
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+
+  const handleInstallRecommendedApp = (app) => {
+    // Kirim command terminal langsung ke backend SSH
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      // Jalankan command diikuti Enter (\n)
+      wsRef.current.send(`${app.command}\n`);
+    }
+  };
 
   const toggleTerminal = () => {
     setIsTerminalOpen((prev) => !prev);
@@ -353,76 +382,7 @@ export default function SitesPage() {
           </div>
 
           {/* APPS & TERMINAL ROW */}
-          <div className="grid grid-cols-12 gap-5 pt-2">
-            {/* APP LIST */}
-            <div className="col-span-12 lg:col-span-6 bg-[#0b0f17] border border-slate-800/80 rounded-xl p-5 shadow-xl flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800/60">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-[#141d2d] border border-slate-700/60 flex items-center justify-center text-blue-400">
-                      <AppWindow className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                      <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                        Installed Applications
-                      </h2>
-                      <p className="text-[10px] text-slate-500 font-mono">
-                        Target site: {site?.name} ({site?.endpoint})
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setIsAddAppModalOpen(true)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-600/90 hover:bg-blue-500 text-white text-[11px] font-medium transition-all cursor-pointer shadow-sm"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Add App
-                  </button>
-                </div>
-
-                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
-                  {(!site?.installedApps || site.installedApps.length === 0) ? (
-                    <div className="py-8 text-center text-xs text-slate-500">
-                      Belum ada aplikasi terinstall pada site ini.
-                    </div>
-                  ) : (
-                    site.installedApps.map(app => (
-                      <div
-                        key={app.id}
-                        className="p-3 bg-[#0e1420] border border-slate-800/80 hover:border-slate-700/80 rounded-xl flex items-center justify-between transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-[#141c2c] border border-slate-700/50 flex items-center justify-center text-emerald-400">
-                            <CheckCircle2 className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h3 className="text-xs font-semibold text-white flex items-center gap-2">
-                              {app.name}
-                              <span className="text-[9px] bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 px-1.5 py-0.2 rounded font-mono">
-                                installed
-                              </span>
-                            </h3>
-                            <div className="flex items-center gap-2 mt-0.5 text-[10.5px] font-mono text-slate-500">
-                              <span>Version: <strong className="text-slate-300">{app.version}</strong></span>
-                              <span>·</span>
-                              <span>Size: <strong className="text-slate-300">{app.size}</strong></span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => handleUninstallApp(app.id)}
-                          className="flex items-center gap-1 px-2 py-1 rounded bg-rose-950/40 border border-rose-800/40 text-rose-300 hover:bg-rose-900/60 text-[10px] font-mono transition-colors cursor-pointer"
-                        >
-                          <Trash className="w-3 h-3" />
-                          Uninstall
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+          <div className="pt-2">
 
             {/* LIVE TERMINAL ACCESS */}
             <div className="col-span-12 lg:col-span-6 bg-[#0b0f17] border border-slate-800/80 rounded-xl p-5 shadow-xl flex flex-col">
@@ -443,18 +403,18 @@ export default function SitesPage() {
                 <div className="flex items-center gap-2">
                   <span
                     className={`w-2 h-2 rounded-full ${connStatus[site?.id]?.status === "connected"
-                        ? "bg-emerald-500 animate-pulse"
-                        : connStatus[site?.id]?.status === "disconnected"
-                          ? "bg-rose-500"
-                          : "bg-amber-500 animate-pulse"
+                      ? "bg-emerald-500 animate-pulse"
+                      : connStatus[site?.id]?.status === "disconnected"
+                        ? "bg-rose-500"
+                        : "bg-amber-500 animate-pulse"
                       }`}
                   />
                   <span
                     className={`text-[10px] font-mono ${connStatus[site?.id]?.status === "connected"
-                        ? "text-emerald-400"
-                        : connStatus[site?.id]?.status === "disconnected"
-                          ? "text-rose-400"
-                          : "text-amber-400"
+                      ? "text-emerald-400"
+                      : connStatus[site?.id]?.status === "disconnected"
+                        ? "text-rose-400"
+                        : "text-amber-400"
                       }`}
                   >
                     {connStatus[site?.id]?.status === "connected"
@@ -464,20 +424,20 @@ export default function SitesPage() {
                         : "Checking..."}
                   </span>
                 </div>
-              {/* --- TOMBOL BUKA / TUTUP TERMINAL --- */}
-              <button
-                onClick={toggleTerminal}
-                className={`px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2 ${isTerminalOpen
+                {/* --- TOMBOL BUKA / TUTUP TERMINAL --- */}
+                <button
+                  onClick={toggleTerminal}
+                  className={`px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2 ${isTerminalOpen
                     ? 'bg-rose-600 hover:bg-rose-700 text-white'
                     : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  }`}
-              >
-                {/* Icon Terminal Sederhana */}
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {isTerminalOpen ? 'Tutup SSH' : 'Buka SSH'}
-              </button>
+                    }`}
+                >
+                  {/* Icon Terminal Sederhana */}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {isTerminalOpen ? 'Tutup SSH' : 'Buka SSH'}
+                </button>
               </div>
               {isTerminalOpen && (
                 <LiveTerminal siteId={site} connStatus={connStatus[site?.id]} />
@@ -589,8 +549,8 @@ export default function SitesPage() {
                         type="button"
                         onClick={() => setFormData({ ...formData, authMethod: method.id })}
                         className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border text-[11px] font-medium transition-all cursor-pointer ${isSelected
-                            ? "bg-blue-950/60 border-blue-500 text-blue-300 shadow-sm"
-                            : "bg-[#111722] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                          ? "bg-blue-950/60 border-blue-500 text-blue-300 shadow-sm"
+                          : "bg-[#111722] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
                           }`}
                       >
                         <IconComp className="w-3.5 h-3.5" />
@@ -813,8 +773,8 @@ function Topology({ sites, picked, onPick }) {
               key={s.id}
               onClick={() => onPick(s.id)}
               className={`p-3.5 rounded-xl border transition-all cursor-pointer ${picked === s.id
-                  ? "bg-blue-950/40 border-blue-500/80 shadow-lg shadow-blue-500/10"
-                  : "bg-[#0e1420] border-slate-800 hover:border-slate-700"
+                ? "bg-blue-950/40 border-blue-500/80 shadow-lg shadow-blue-500/10"
+                : "bg-[#0e1420] border-slate-800 hover:border-slate-700"
                 }`}
             >
               <div className="flex items-center justify-between">
@@ -840,8 +800,8 @@ function Topology({ sites, picked, onPick }) {
               key={s.id}
               onClick={() => onPick(s.id)}
               className={`p-3.5 rounded-xl border transition-all cursor-pointer ${picked === s.id
-                  ? "bg-blue-950/40 border-blue-500/80 shadow-lg shadow-blue-500/10"
-                  : "bg-[#0e1420] border-slate-800 hover:border-slate-700"
+                ? "bg-blue-950/40 border-blue-500/80 shadow-lg shadow-blue-500/10"
+                : "bg-[#0e1420] border-slate-800 hover:border-slate-700"
                 }`}
             >
               <div className="flex items-center justify-between">
