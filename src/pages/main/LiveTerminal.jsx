@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
+import { BaseUrlHub } from '../../api/apiservice';
 
 export default function RealSshTerminal(sites) {
     const site = sites.siteId;
@@ -61,7 +62,7 @@ export default function RealSshTerminal(sites) {
         term.write(`\x1b[33m[+] Auto-connecting to ${user}@${host}:${port} (${siteData.name || 'Site'})...\x1b[0m\r\n`);
 
         // Bangun URL WebSocket dengan menyertakan Port
-        const wsUrl = `ws://localhost:5001/ws/ssh?host=${encodeURIComponent(host)}&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&port=${encodeURIComponent(port)}`;
+        const wsUrl = `ws://${BaseUrlHub}/ws/ssh?host=${encodeURIComponent(host)}&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&port=${encodeURIComponent(port)}`;
         
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
