@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Activity,
@@ -16,12 +16,14 @@ import {
   ChevronUp,
   Check,
   Code2,
+  LogOut,
 } from "lucide-react";
 import api from "../api/axios";
 import { useTenant } from "../context/TenantContext"; // Import Custom Hook Context
 
 function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchWorkspace, setSearchWorkspace] = useState("");
   const [userData, setUserData] = useState(null);
@@ -54,7 +56,8 @@ function Sidebar() {
       title: "GOVERN",
       items: [
         { name: "Tenants", path: "/tenants", icon: Users, permissionKey: "tenant" },
-        { name: "RBAC & Audit", path: "/rbac", icon: ShieldCheck, permissionKey: "rbac" },
+        { name: "Lisensi", path: "/settings/license", icon: ShieldCheck, permissionKey: "rbac" },
+        { name: "Audit Log", path: "/rbac", icon: ShieldCheck, permissionKey: "rbac" },
         { name: "Settings", path: "/settings", icon: Settings, permissionKey: "settings" },
       ],
     },
@@ -82,6 +85,20 @@ function Sidebar() {
       }
     } catch (error) {
       console.error("Error fetching session data:", error);
+    }
+  };
+
+  // Handler Logout
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    } finally {
+      // Hapus token atau session lokal jika ada
+      localStorage.removeItem("token");
+      // Redirect ke halaman login
+      navigate("/login");
     }
   };
 
@@ -276,16 +293,19 @@ function Sidebar() {
         })}
       </div>
 
-      {/* 4. FOOTER COMMAND BAR */}
+      {/* 4. FOOTER LOGOUT BUTTON */}
       <div className="p-3 border-t border-slate-800/60">
-        <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#0e141f] border border-slate-800/80 text-xs text-slate-400 hover:text-slate-200 hover:border-slate-700 transition-all">
-          <div className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-slate-500" />
-            <span>Command</span>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#0e141f] hover:bg-rose-950/30 border border-slate-800/80 hover:border-rose-900/50 text-xs text-slate-400 hover:text-rose-400 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-2.5">
+            <LogOut className="w-3.5 h-3.5 text-slate-500 group-hover:text-rose-400 transition-colors" />
+            <span className="font-medium">Logout</span>
           </div>
-          <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-slate-800/80 border border-slate-700/60 rounded text-slate-400">
-            ⌘K
-          </kbd>
+          <span className="text-[10px] text-slate-600 group-hover:text-rose-500/70 font-mono">
+            Exit
+          </span>
         </button>
       </div>
     </div>

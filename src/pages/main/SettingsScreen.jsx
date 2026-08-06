@@ -13,18 +13,18 @@ import { Link } from "react-router-dom";
 
 // Data dummy sesuai dengan teks pada gambar
 const SETTINGS_ITEMS = [
-  // {
-  //   id: "general",
-  //   title: "General",
-  //   description: "Display name, region, default timezone",
-  //   icon: GeneralIcon,
-  // },
   {
-    id: "license-keys",
-    title: "Lisensi Management",
-    description: "Manage your license keys and subscriptions",
-    icon: KeyRound,
-    site: "/settings/license", // Tambahkan properti site untuk navigasi
+    id: "general",
+    title: "General",
+    description: "Display name, region, default timezone",
+    icon: GeneralIcon,
+  },
+  {
+    id: "rbac",
+    title: "Role & Permissions",
+    description: "Manage roles and permissions",
+    icon: Shield,
+    site: "/rbac", // Tambahkan properti site untuk navigasi
   },
   {
     id: "members",
@@ -33,19 +33,19 @@ const SETTINGS_ITEMS = [
     icon: Users,
     site: "/settings/members", // Tambahkan properti site untuk navigasi
   },
-  {
-    id: "security",
-    title: "Security",
-    description: "SSO, session policies, IP allowlist",
-    icon: Shield,
-    site: "/settings/security", // Tambahkan properti site untuk navigasi
-  },
   // {
-  //   id: "notifications",
-  //   title: "Notifications",
-  //   description: "Email, Slack, PagerDuty, Webhook routing",
-  //   icon: Bell,
+  //   id: "security",
+  //   title: "Security",
+  //   description: "SSO, session policies, IP allowlist",
+  //   icon: Shield,
+  //   site: "/settings/security", // Tambahkan properti site untuk navigasi
   // },
+  {
+    id: "notifications",
+    title: "Notifications",
+    description: "Email, Slack, PagerDuty, Webhook routing",
+    icon: Bell,
+  },
   // {
   //   id: "billing",
   //   title: "Billing",
